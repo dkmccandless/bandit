@@ -191,38 +191,7 @@ type Position struct {
 }
 
 // InitialPosition represents the position at the beginning of a game of chess.
-var InitialPosition = Position{
-	QSCastle:   [2]bool{true, true},
-	KSCastle:   [2]bool{true, true},
-	ToMove:     White,
-	Opp:        Black,
-	HalfMove:   0,
-	FullMove:   1,
-	KingSquare: [2]Square{e1, e8},
-
-	b: [2][8]Board{
-		{
-			0,     // unused
-			Rank2, // White pawns
-			(BFile | GFile) & Rank1, // White knights
-			(CFile | FFile) & Rank1, // White bishops
-			(AFile | HFile) & Rank1, // White rooks
-			DFile & Rank1,           // White queens
-			EFile & Rank1,           // White king
-			Rank1 | Rank2,           // All white pieces
-		},
-		{
-			0,     // unused
-			Rank7, // Black pawns
-			(BFile | GFile) & Rank8, // Black knights
-			(CFile | FFile) & Rank8, // Black bishops
-			(AFile | HFile) & Rank8, // Black rooks
-			DFile & Rank8,           // Black queens
-			EFile & Rank8,           // Black king
-			Rank7 | Rank8,           // All black pieces
-		},
-	},
-}
+var InitialPosition, _ = ParseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
 // PieceOn returns the Color and Piece type of the piece, if any, on the specified Square.
 func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {
