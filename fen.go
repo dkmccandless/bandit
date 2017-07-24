@@ -61,6 +61,7 @@ func ParseFEN(fen string) (pos Position, err error) {
 	rows := strings.Split(fields[0], "/")
 	if len(rows) != 8 {
 		err = fmt.Errorf("ParseFEN: %v rows (need 8)", len(rows))
+		return
 	}
 	for r, s := range rows {
 		var n int
