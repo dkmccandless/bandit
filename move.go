@@ -162,7 +162,6 @@ func PawnMoves(pos Position) (moves []Move) {
 					log.Fatalf("PawnMoves (White): attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m := Move{From: from, To: to, Piece: Pawn, CapturePiece: capturePiece, CaptureSquare: to}
-				log.Printf("PawnMoves (White): capture a %v on %v", m.CapturePiece, to)
 				if to.Rank() == 7 {
 					m.PromotePiece = Queen
 					moves = append(moves, m)
@@ -200,7 +199,6 @@ func PawnMoves(pos Position) (moves []Move) {
 					log.Fatalf("PawnMoves (Black): attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m := Move{From: from, To: to, Piece: Pawn, CapturePiece: capturePiece, CaptureSquare: to}
-				log.Printf("PawnMoves (Black): capture a %v on %v, move %+v", m.CapturePiece, to, m)
 				if to.Rank() == 0 {
 					m.PromotePiece = Queen
 					moves = append(moves, m)
