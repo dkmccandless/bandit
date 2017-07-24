@@ -44,6 +44,13 @@ func Make(pos Position, m Move) Position {
 		// Remove the captured piece from CaptureSquare, not To
 		pos.b[pos.Opp][m.CapturePiece] ^= m.CaptureSquare.Board()
 		pos.b[pos.Opp][All] ^= m.CaptureSquare.Board()
+		// Lose the relevant castling right
+		switch {
+		case (pos.Opp == White && m.CaptureSquare == a1) || (pos.Opp == Black && m.CaptureSquare == a8):
+			pos.QSCastle[pos.Opp] = false
+		case (pos.Opp == White && m.CaptureSquare == h1) || (pos.Opp == Black && m.CaptureSquare == h8):
+			pos.KSCastle[pos.Opp] = false
+		}
 	case m.IsQSCastle():
 		// Move the castling rook
 		rookFromTo := (m.From - 4).Board() ^ (m.From - 1).Board()
