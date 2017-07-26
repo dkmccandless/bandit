@@ -17,7 +17,7 @@ func TestPerft(t *testing.T) {
 		want []int
 	}{
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", []int{20, 400, 8902, 197281, 4865609, 119060324}},
-		{"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", []int{1, 48, 2039, 97862, 4085603, 193690690}},
+		{"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", []int{48, 2039, 97862, 4085603, 193690690}},
 		{"4k3/8/8/8/8/8/8/4K2R w K - 0 1", []int{15, 66, 1197, 7059, 133987, 764643}},
 		{"4k3/8/8/8/8/8/8/R3K3 w Q - 0 1", []int{16, 71, 1287, 7626, 145232, 846648}},
 		{"4k2r/8/8/8/8/8/8/4K3 w k - 0 1", []int{5, 75, 459, 8290, 47635, 899442}},
@@ -149,15 +149,16 @@ func TestPerft(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		got := make([]int, 7)
+		wantDepth := len(test.want)
+		got := make([]int, wantDepth+1)
 		perftSearch := func(pos Position, _ int, _ int, depth int, allowCutoff bool, search SearchFunc) (int, Move) {
-			got[6-depth]++
+			got[wantDepth-depth]++
 			return negamax(pos, 0, 0, depth, false, search)
 		}
 
-		_, _ = perftSearch(pos, 0, 0, 6, false, perftSearch)
+		_, _ = perftSearch(pos, 0, 0, wantDepth, false, perftSearch)
 		got = got[1:]
-		for i := range got {
+		for i := range test.want {
 			if got[i] != test.want[i] {
 				t.Errorf("TestPerft(%v): got %v, want %v", test.fen, got, test.want)
 				break
