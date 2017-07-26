@@ -218,29 +218,29 @@ func PawnMoves(pos Position) (moves []Move) {
 				moves = append(moves, m)
 			}
 		}
+	}
 
-		if pos.ep != 0 {
-			// Double pawn push occurred on the previous move
-			var epSources Board
-			var epCaptureSquare Square
-			switch pos.ToMove {
-			case White:
-				epSources = southwest(pos.ep.Board()) | southeast(pos.ep.Board())
-				epCaptureSquare = pos.ep - 8
-			case Black:
-				epSources = northwest(pos.ep.Board()) | northeast(pos.ep.Board())
-				epCaptureSquare = pos.ep + 8
-			}
-			for src := epSources & pos.b[pos.ToMove][Pawn]; src != 0; src = ResetLS1B(src) {
-				from := LS1BIndex(src)
-				moves = append(moves, Move{
-					From:          from,
-					To:            pos.ep,
-					Piece:         Pawn,
-					CapturePiece:  Pawn,
-					CaptureSquare: epCaptureSquare,
-				})
-			}
+	if pos.ep != 0 {
+		// Double pawn push occurred on the previous move
+		var epSources Board
+		var epCaptureSquare Square
+		switch pos.ToMove {
+		case White:
+			epSources = southwest(pos.ep.Board()) | southeast(pos.ep.Board())
+			epCaptureSquare = pos.ep - 8
+		case Black:
+			epSources = northwest(pos.ep.Board()) | northeast(pos.ep.Board())
+			epCaptureSquare = pos.ep + 8
+		}
+		for src := epSources & pos.b[pos.ToMove][Pawn]; src != 0; src = ResetLS1B(src) {
+			from := LS1BIndex(src)
+			moves = append(moves, Move{
+				From:          from,
+				To:            pos.ep,
+				Piece:         Pawn,
+				CapturePiece:  Pawn,
+				CaptureSquare: epCaptureSquare,
+			})
 		}
 	}
 	return
