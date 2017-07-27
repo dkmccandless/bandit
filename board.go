@@ -123,11 +123,21 @@ const (
 )
 
 var (
-	QSCastleSquares = []Board{
+	// The squares that must be empty before castling
+	QSCastleEmptySquares = []Board{
+		(BFile | CFile | DFile) & Rank1,
+		(BFile | CFile | DFile) & Rank8,
+	}
+	KSCastleEmptySquares = []Board{
+		(FFile | GFile) & Rank1,
+		(FFile | GFile) & Rank8,
+	}
+	// The squares that the king occupies during castling
+	QSCastleKingSquares = []Board{
 		(CFile | DFile | EFile) & Rank1,
 		(CFile | DFile | EFile) & Rank8,
 	}
-	KSCastleSquares = []Board{
+	KSCastleKingSquares = []Board{
 		(EFile | FFile | GFile) & Rank1,
 		(EFile | FFile | GFile) & Rank8,
 	}

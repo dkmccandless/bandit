@@ -380,10 +380,10 @@ func canQSCastle(pos Position) bool {
 		return false
 	}
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	if (QSCastleSquares[pos.ToMove]^pos.b[pos.ToMove][King])&^empty != 0 {
+	if QSCastleEmptySquares[pos.ToMove]&^empty != 0 {
 		return false
 	}
-	for dst := QSCastleSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
+	for dst := QSCastleKingSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
 		if IsAttacked(pos, LS1BIndex(dst), pos.Opp) {
 			return false
 		}
@@ -397,10 +397,10 @@ func canKSCastle(pos Position) bool {
 		return false
 	}
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	if (KSCastleSquares[pos.ToMove]^pos.b[pos.ToMove][King])&^empty != 0 {
+	if KSCastleEmptySquares[pos.ToMove]&^empty != 0 {
 		return false
 	}
-	for dst := KSCastleSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
+	for dst := KSCastleKingSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
 		if IsAttacked(pos, LS1BIndex(dst), pos.Opp) {
 			return false
 		}
