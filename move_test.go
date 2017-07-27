@@ -382,3 +382,69 @@ func TestIsAttacked(t *testing.T) {
 		}
 	}
 }
+
+func TestCanQSCastle(t *testing.T) {
+	for _, test := range []struct {
+		fen  string
+		want bool
+	}{
+		{"4k3/8/8/8/8/8/8/4K2R w Q - 0 1", true},
+		{"4k3/8/8/8/8/8/8/4K2R w - - 0 1", false},
+		{"4k3/8/8/8/8/8/8/4K2R b Q - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4K2R w Q - 0 1", true},
+		{"1r2k3/8/8/8/8/8/8/4K2R w Q - 0 1", true},
+		{"3rk3/8/8/8/8/8/8/4K2R w Q - 0 1", false},
+		{"4k3/8/8/8/8/8/8/RN2K3 w Q - 0 1", false},
+		{"4k3/8/8/8/8/8/8/R3K1N1 w Q - 0 1", true},
+
+		{"4k2r/8/8/8/8/8/8/4K3 b q - 0 1", true},
+		{"4k2r/8/8/8/8/8/8/4K3 b - - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4K3 w q - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4K2R b q - 0 1", true},
+		{"4k2r/8/8/8/8/8/8/1R2K3 b q - 0 1", true},
+		{"4k2r/8/8/8/8/8/8/3RK3 b q - 0 1", false},
+		{"rn2k3/8/8/8/8/8/8/4K3 b q - 0 1", false},
+		{"r3k1n1/8/8/8/8/8/8/4K3 b q - 0 1", true},
+	} {
+		pos, err := ParseFEN(test.fen)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := canQSCastle(pos); got != test.want {
+			t.Errorf("canQSCastle(%v): got %v, want %v", test.fen, got, test.want)
+		}
+	}
+}
+
+func TestCanKSCastle(t *testing.T) {
+	for _, test := range []struct {
+		fen  string
+		want bool
+	}{
+		{"4k3/8/8/8/8/8/8/4K2R w K - 0 1", true},
+		{"4k3/8/8/8/8/8/8/4K2R w - - 0 1", false},
+		{"4k3/8/8/8/8/8/8/4K2R b K - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4K2R w K - 0 1", true},
+		{"4k1r1/8/8/8/8/8/8/4K2R w K - 0 1", false},
+		{"4kr2/8/8/8/8/8/8/4K2R w K - 0 1", false},
+		{"4k3/8/8/8/8/8/8/4K1NR w K - 0 1", false},
+		{"4k3/8/8/8/8/8/8/RN2K2R w K - 0 1", true},
+
+		{"4k2r/8/8/8/8/8/8/4K3 b k - 0 1", true},
+		{"4k2r/8/8/8/8/8/8/4K3 b - - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4K3 w k - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4K2R b k - 0 1", true},
+		{"4k2r/8/8/8/8/8/8/4K1R1 b k - 0 1", false},
+		{"4k2r/8/8/8/8/8/8/4KR2 b k - 0 1", false},
+		{"4k1nr/8/8/8/8/8/8/4K3 b k - 0 1", false},
+		{"rn2k2r/8/8/8/8/8/8/4K3 b k - 0 1", true},
+	} {
+		pos, err := ParseFEN(test.fen)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := canKSCastle(pos); got != test.want {
+			t.Errorf("canKSCastle(%v): got %v, want %v", test.fen, got, test.want)
+		}
+	}
+}
