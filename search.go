@@ -42,7 +42,7 @@ func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, sea
 
 	if !haveLegalMove { // checkmate or stalemate
 		if isCheck(pos) {
-			bestScore = -evalInf * evalMult(pos.ToMove)
+			bestScore = -evalInf
 		} else {
 			bestScore = 0
 		}
@@ -60,16 +60,4 @@ func isCheck(pos Position) bool {
 // A move is illegal if it leaves one's own king in check.
 func isLegal(pos Position) bool {
 	return !IsAttacked(pos, pos.KingSquare[pos.Opp], pos.ToMove)
-}
-
-func Eval(pos Position) int {
-	return 3
-}
-
-func evalMult(c Color) int {
-	if c == White {
-		return 1
-	} else {
-		return -1
-	}
 }

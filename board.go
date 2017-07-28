@@ -266,6 +266,16 @@ func ResetLS1B(b Board) Board {
 	return b & (b - 1)
 }
 
+// PopCount returns the number of 1 bits in the input Board.
+func PopCount(b Board) int {
+	var n int
+	for b != 0 {
+		n++
+		b = ResetLS1B(b)
+	}
+	return n
+}
+
 func (pos Position) Display() string {
 	s := "\n"
 	for r := 7; r >= 0; r-- {
