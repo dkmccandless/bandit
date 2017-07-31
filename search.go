@@ -11,20 +11,25 @@ func SearchPosition(pos Position, depth int) (int, Move) {
 type SearchFunc func(Position, int, int, int, bool, SearchFunc) (int, Move)
 
 func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, search SearchFunc) (bestScore int, bestMove Move) {
-	if depth == 0 {
-		return Eval(pos) * evalMult(pos.ToMove), bestMove
+	if IsTerminal(pos) { // checkmate or stalemate
+		if IsCheck(pos) {
+			bestScore = -evalInf
+		}
+		return
 	}
-	moves := Candidates(pos) // pseudo-legal
+	if depth == 0 {
+		bestScore = Eval(pos) * evalMult(pos.ToMove)
+		return
+	}
 
+	moves := Candidates(pos) // pseudo-legal
 	bestScore = alpha
-	var haveLegalMove bool
 
 	for _, m := range moves {
 		newpos := Make(pos, m)
-		if !isLegal(newpos) {
+		if !IsLegal(newpos) {
 			continue
 		}
-		haveLegalMove = true
 
 		score, _ := search(newpos, -beta, -alpha, depth-1, allowCutoff, search)
 		score *= -1
@@ -39,25 +44,27 @@ func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, sea
 			break
 		}
 	}
-
-	if !haveLegalMove { // checkmate or stalemate
-		if isCheck(pos) {
-			bestScore = -evalInf
-		} else {
-			bestScore = 0
-		}
-	}
-
 	return
 }
 
-// isCheck returns whether the side to move's king is in check.
-func isCheck(pos Position) bool {
+// IsCheck returns whether the king of the side to move is in check.
+func IsCheck(pos Position) bool {
 	return IsAttacked(pos, pos.KingSquare[pos.ToMove], pos.Opp)
 }
 
-// isLegal returns whether the given Position results from a legal move.
-// A move is illegal if it leaves one's own king in check.
-func isLegal(pos Position) bool {
+// IsLegal returns whether a Position results from a legal move.
+// A position is illegal if the king of the side that just moved is in check.
+func IsLegal(pos Position) bool {
 	return !IsAttacked(pos, pos.KingSquare[pos.Opp], pos.ToMove)
+}
+
+// IsTerminal returns whether or not a Position is checkmate or stalemate.
+// A position is checkmate or stalemate if the side to move has no legal moves.
+func IsTerminal(pos Position) bool {
+	for _, m := range Candidates(pos) {
+		if IsLegal(Make(pos, m)) {
+			return false
+		}
+	}
+	return true
 }
