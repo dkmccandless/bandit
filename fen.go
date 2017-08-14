@@ -43,18 +43,13 @@ func ParseFEN(fen string) (pos Position, err error) {
 	fields := strings.Fields(fen)
 	if len(fields) != 6 {
 		err = fmt.Errorf("ParseFEN: %v fields (need 6)", len(fields))
-	}
-	switch wk, bk := strings.Count(fields[0], "K"), strings.Count(fields[0], "k"); {
-	case wk == 0:
-		err = errors.New("ParseFEN: No white king")
 		return
-	case wk > 1:
+	}
+	if wk := strings.Count(fields[0], "K"); wk != 1 {
 		err = fmt.Errorf("ParseFEN: %v white kings", wk)
 		return
-	case bk == 0:
-		err = errors.New("ParseFEN: No black king")
-		return
-	case bk > 1:
+	}
+	if bk := strings.Count(fields[0], "k"); bk != 1 {
 		err = fmt.Errorf("ParseFEN: %v black kings", bk)
 		return
 	}
@@ -78,6 +73,7 @@ func ParseFEN(fen string) (pos Position, err error) {
 		}
 		if n != 8 {
 			err = fmt.Errorf("ParseFEN: %v squares in row %v (need 8)", n, s)
+			return
 		}
 		sq := Square(56 - 8*r)
 		for _, char := range s {
