@@ -23,7 +23,7 @@ func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, sea
 	}
 
 	moves := Candidates(pos) // pseudo-legal
-	bestScore = alpha
+	bestScore, bestMove = alpha, moves[0]
 
 	for _, m := range moves {
 		newpos := Make(pos, m)
