@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 // A Square represents a square on the board in little-endian rank-file order (a1 = 0, a2 = 1, h8 = 63).
@@ -123,6 +124,11 @@ const (
 )
 
 var (
+	Files       = []Board{AFile, BFile, CFile, DFile, EFile, FFile, GFile, HFile}
+	Ranks       = []Board{Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8}
+	fileLetters = []string{"a", "b", "c", "d", "e", "f", "g", "h"}
+	rankNumbers = []string{"1", "2", "3", "4", "5", "6", "7", "8"}
+
 	// The squares that must be empty before castling
 	QSCastleEmptySquares = []Board{
 		(BFile | CFile | DFile) & Rank1,
@@ -166,6 +172,8 @@ const (
 	King
 	All
 )
+
+var pieceLetter = []string{"", "P", "N", "B", "R", "Q", "K"}
 
 // A Position contains all information necessary to specify the current state of a game.
 type Position struct {
@@ -276,48 +284,21 @@ func PopCount(b Board) int {
 	return n
 }
 
+func pieceChar(c Color, p Piece) string {
+	s := pieceLetter[p]
+	if c == Black {
+		s = strings.ToLower(s)
+	}
+	return s
+}
+
 func (pos Position) Display() string {
 	s := "\n"
 	for r := 7; r >= 0; r-- {
 		for f := 0; f < 8; f++ {
-			switch c, p, _ := pos.PieceOn(Square(8*r + f)); p {
-			case Pawn:
-				if c == White {
-					s += "P"
-				} else {
-					s += "p"
-				}
-			case Knight:
-				if c == White {
-					s += "N"
-				} else {
-					s += "n"
-				}
-			case Bishop:
-				if c == White {
-					s += "B"
-				} else {
-					s += "b"
-				}
-			case Rook:
-				if c == White {
-					s += "R"
-				} else {
-					s += "r"
-				}
-			case Queen:
-				if c == White {
-					s += "Q"
-				} else {
-					s += "q"
-				}
-			case King:
-				if c == White {
-					s += "K"
-				} else {
-					s += "k"
-				}
-			default:
+			if c, p, ok := pos.PieceOn(Square(8*r + f)); ok {
+				s += pieceChar(c, p)
+			} else {
 				s += "."
 			}
 			s += " "

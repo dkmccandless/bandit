@@ -167,7 +167,7 @@ func FEN(pos Position) string {
 					s += strconv.Itoa(gap)
 					gap = 0
 				}
-				s += PieceChar(c, p)
+				s += pieceChar(c, p)
 			} else {
 				gap++
 			}
@@ -206,28 +206,6 @@ func FEN(pos Position) string {
 		s += " " + pos.ep.String() + " "
 	}
 	s += strconv.Itoa(pos.HalfMove) + " " + strconv.Itoa(pos.FullMove)
-	return s
-}
-
-func PieceChar(c Color, p Piece) string {
-	var s string
-	switch p {
-	case Pawn:
-		s = "P"
-	case Knight:
-		s = "N"
-	case Bishop:
-		s = "B"
-	case Rook:
-		s = "R"
-	case Queen:
-		s = "Q"
-	case King:
-		s = "K"
-	}
-	if c == Black {
-		s = strings.ToLower(s)
-	}
 	return s
 }
 

@@ -136,6 +136,16 @@ func init() {
 	}
 }
 
+var PieceMoves = []func(Position) []Move{
+	func(Position) []Move { return []Move{} },
+	PawnMoves,
+	KnightMoves,
+	BishopMoves,
+	RookMoves,
+	QueenMoves,
+	KingMoves,
+}
+
 // PawnMoves returns a slice of all pseudo-legal Moves that pawns can make in the current Position.
 func PawnMoves(pos Position) (moves []Move) {
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
