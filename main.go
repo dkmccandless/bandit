@@ -1,19 +1,30 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"time"
 )
 
+var (
+	depth = flag.Int("depth", 4, "the search depth")
+	fen   = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
+)
+
 func main() {
-	pos := InitialPosition
-	moves := []Move{}
+	flag.Parse()
+
+	pos, err := ParseFEN(*fen)
+	if err != nil {
+		panic(err)
+	}
+
 	var movesText string
 
 	for !IsTerminal(pos) {
 		moveTime := time.Now()
 
-		score, move := SearchPosition(pos, 4)
+		score, move := SearchPosition(pos, *depth)
 
 		if pos.ToMove == White {
 			fmt.Printf("\n%v.", pos.FullMove)
@@ -24,7 +35,6 @@ func main() {
 		fmt.Printf("%v %.2f %v", algebraic(pos, move), float64(score)/100, time.Since(moveTime))
 		movesText += algebraic(pos, move) + " "
 
-		moves = append(moves, move)
 		pos = Make(pos, move)
 
 		fmt.Print(pos.Display())

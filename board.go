@@ -208,8 +208,10 @@ type Position struct {
 	b [2][8]Board
 }
 
+var InitialPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 // InitialPosition represents the position at the beginning of a game of chess.
-var InitialPosition, _ = ParseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+var InitialPosition, _ = ParseFEN(InitialPositionFEN)
 
 // PieceOn returns the Color and Piece type of the piece, if any, on the specified Square.
 func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {
