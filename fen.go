@@ -41,21 +41,17 @@ var (
 func ParseFEN(fen string) (pos Position, err error) {
 	fields := strings.Fields(fen)
 	if len(fields) != 6 {
-		err = fmt.Errorf("ParseFEN: %v fields (need 6)", len(fields))
-		return
+		return pos, fmt.Errorf("ParseFEN: %v fields (need 6)", len(fields))
 	}
 	if wk := strings.Count(fields[0], "K"); wk != 1 {
-		err = fmt.Errorf("ParseFEN: %v white kings", wk)
-		return
+		return pos, fmt.Errorf("ParseFEN: %v white kings", wk)
 	}
 	if bk := strings.Count(fields[0], "k"); bk != 1 {
-		err = fmt.Errorf("ParseFEN: %v black kings", bk)
-		return
+		return pos, fmt.Errorf("ParseFEN: %v black kings", bk)
 	}
 	rows := strings.Split(fields[0], "/")
 	if len(rows) != 8 {
-		err = fmt.Errorf("ParseFEN: %v rows (need 8)", len(rows))
-		return
+		return pos, fmt.Errorf("ParseFEN: %v rows (need 8)", len(rows))
 	}
 	for r, s := range rows {
 		var n int
@@ -66,13 +62,11 @@ func ParseFEN(fen string) (pos Position, err error) {
 			case isNumber(char):
 				n += int(char - '0')
 			default:
-				err = fmt.Errorf("ParseFEN: Invalid character in row %v", s)
-				return
+				return pos, fmt.Errorf("ParseFEN: Invalid character in row %v", s)
 			}
 		}
 		if n != 8 {
-			err = fmt.Errorf("ParseFEN: %v squares in row %v (need 8)", n, s)
-			return
+			return pos, fmt.Errorf("ParseFEN: %v squares in row %v (need 8)", n, s)
 		}
 		sq := Square(56 - 8*r)
 		for _, char := range s {
@@ -82,13 +76,14 @@ func ParseFEN(fen string) (pos Position, err error) {
 			}
 			c, ok := RuneToColor[char]
 			if !ok {
-				err = fmt.Errorf("ParseFEN: Invalid character in row %v", s)
-				return
+				return pos, fmt.Errorf("ParseFEN: Invalid character in row %v", s)
 			}
 			p, ok := RuneToPiece[char]
 			if !ok {
-				err = fmt.Errorf("ParseFEN: Invalid character in row %v", s)
-				return
+				return pos, fmt.Errorf("ParseFEN: Invalid character in row %v", s)
+			}
+			if p == Pawn && (sq.Rank() == 0 || sq.Rank() == 7) {
+				return pos, fmt.Errorf("ParseFEN: Pawn on invalid square %v", sq.String())
 			}
 			pos.b[c][p] ^= sq.Board()
 			pos.b[c][All] ^= sq.Board()
@@ -106,16 +101,14 @@ func ParseFEN(fen string) (pos Position, err error) {
 	case "b":
 		pos.ToMove, pos.Opp = Black, White
 	default:
-		err = fmt.Errorf("ParseFEN: Invalid active player field %v", fields[1])
-		return
+		return pos, fmt.Errorf("ParseFEN: Invalid active player field %v", fields[1])
 	}
 
 	// castling
 	if n := strings.IndexFunc(fields[2], func(char rune) bool {
 		return char != '-' && RuneToPiece[char] != Queen && RuneToPiece[char] != King
 	}); n != -1 {
-		err = fmt.Errorf("ParseFEN: Invalid character in castling field %v", fields[2])
-		return
+		return pos, fmt.Errorf("ParseFEN: Invalid character in castling field %v", fields[2])
 	}
 	for _, char := range fields[2] {
 		switch RuneToPiece[char] {
@@ -128,13 +121,16 @@ func ParseFEN(fen string) (pos Position, err error) {
 
 	// en passant
 	if n := strings.IndexFunc(fields[3], func(char rune) bool {
-		return char != '-' && !('a' <= char && char <= 'h') && char != '3' && char != '6'
+		return char != '-' && !('a' <= char && char <= 'h') && !isNumber(char)
 	}); n != -1 {
-		err = fmt.Errorf("ParseFEN: Invalid character in en passant field %v", fields[2])
-		return
+		return pos, fmt.Errorf("ParseFEN: Invalid character in en passant field %v", fields[2])
 	}
 	if fields[3] != "-" {
-		pos.ep += Square(8*(fields[3][1]-'1') + fields[3][0] - 'a')
+		ep := Square(8*(fields[3][1]-'1') + fields[3][0] - 'a')
+		if ep.Rank() != 2 && ep.Rank() != 5 {
+			return pos, fmt.Errorf("ParseFEN: Invalid en passant square %v", ep.String())
+		}
+		pos.ep = ep
 	}
 
 	// halfmove clock
