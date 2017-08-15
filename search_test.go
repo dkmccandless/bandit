@@ -109,3 +109,29 @@ func TestIsTerminal(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkMake(b *testing.B) {
+	pos, err := ParseFEN("r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1")
+	if err != nil {
+		b.Fatal(err)
+	}
+	for _, benchmark := range []struct {
+		name string
+		move Move
+	}{
+		{"quiet", Move{From: e1, To: f2, Piece: King}},
+		{"double", Move{From: g2, To: g4, Piece: Pawn}},
+		{"en passant", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: e5}},
+		{"capture", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook, CaptureSquare: a8}},
+		{"promotion", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}},
+		{"capture promotion", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}},
+		{"castle queenside", Move{From: e1, To: c1, Piece: King}},
+		{"castle kingside", Move{From: e1, To: g1, Piece: King}},
+	} {
+		b.Run(benchmark.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = Make(pos, benchmark.move)
+			}
+		})
+	}
+}
