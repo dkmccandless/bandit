@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -65,7 +64,7 @@ func ParseFEN(fen string) (pos Position, err error) {
 			case isWhite(char) || isBlack(char):
 				n++
 			case isNumber(char):
-				n += int(char - '1')
+				n += int(char - '0')
 			default:
 				err = fmt.Errorf("ParseFEN: Invalid character in row %v", s)
 				return
@@ -205,6 +204,6 @@ func FEN(pos Position) string {
 	return s
 }
 
-func isWhite(r rune) bool  { return RuneToColor[r] == White }
-func isBlack(r rune) bool  { return RuneToColor[r] == Black }
+func isWhite(r rune) bool  { return r == 'P' || r == 'N' || r == 'B' || r == 'R' || r == 'Q' || r == 'K' }
+func isBlack(r rune) bool  { return r == 'p' || r == 'n' || r == 'b' || r == 'r' || r == 'q' || r == 'k' }
 func isNumber(r rune) bool { return '1' <= r && r <= '8' }
