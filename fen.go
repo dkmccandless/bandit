@@ -120,13 +120,11 @@ func ParseFEN(fen string) (pos Position, err error) {
 	}
 
 	// en passant
-	if n := strings.IndexFunc(fields[3], func(char rune) bool {
-		return char != '-' && !('a' <= char && char <= 'h') && !isNumber(char)
-	}); n != -1 {
-		return pos, fmt.Errorf("ParseFEN: Invalid character in en passant field %v", fields[2])
-	}
-	if fields[3] != "-" {
-		ep := Square(8*(fields[3][1]-'1') + fields[3][0] - 'a')
+	if s := fields[3]; s != "-" {
+		if len(s) != 2 || !('a' <= s[0] && s[0] <= 'h') || !isNumber(rune(s[1])) {
+			return pos, fmt.Errorf("ParseFEN: Invalid character in en passant field %v", s)
+		}
+		ep := Square(8*(s[1]-'1') + s[0] - 'a')
 		if ep.Rank() != 2 && ep.Rank() != 5 {
 			return pos, fmt.Errorf("ParseFEN: Invalid en passant square %v", ep.String())
 		}
