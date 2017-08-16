@@ -120,15 +120,13 @@ func ParseFEN(fen string) (pos Position, err error) {
 	}
 
 	// en passant
-	if s := fields[3]; s != "-" {
-		if len(s) != 2 || !('a' <= s[0] && s[0] <= 'h') || !isNumber(rune(s[1])) {
-			return pos, fmt.Errorf("ParseFEN: Invalid character in en passant field %v", s)
+	if fields[3] != "-" {
+		if pos.ep, err = ParseSquare(fields[3]); err != nil {
+			return
 		}
-		ep := Square(8*(s[1]-'1') + s[0] - 'a')
-		if ep.Rank() != 2 && ep.Rank() != 5 {
-			return pos, fmt.Errorf("ParseFEN: Invalid en passant square %v", ep.String())
+		if pos.ep.Rank() != 2 && pos.ep.Rank() != 5 {
+			return pos, fmt.Errorf("ParseFEN: Invalid en passant square %v", pos.ep.String())
 		}
-		pos.ep = ep
 	}
 
 	// halfmove clock
@@ -142,6 +140,15 @@ func ParseFEN(fen string) (pos Position, err error) {
 	}
 
 	return
+}
+
+// ParseSquare returns the Square represented by the string.
+// It returns an error if the string does not consist of one letter in [a, h] followed by one number in [1, 8].
+func ParseSquare(s string) (sq Square, err error) {
+	if len(s) != 2 || !('a' <= s[0] && s[0] <= 'h') || !isNumber(rune(s[1])) {
+		return 0, fmt.Errorf("ParseSquare(%v): Invalid character", s)
+	}
+	return Square(8*(s[1]-'1') + s[0] - 'a'), nil
 }
 
 // FEN converts a Position into an FEN record.
