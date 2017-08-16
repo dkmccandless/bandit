@@ -42,14 +42,14 @@ func Make(pos Position, m Move) Position {
 	switch {
 	case m.IsCapture():
 		// Remove the captured piece from CaptureSquare, not To
-		pos.b[pos.Opp][m.CapturePiece] ^= m.CaptureSquare.Board()
-		pos.b[pos.Opp][All] ^= m.CaptureSquare.Board()
+		pos.b[pos.Opp()][m.CapturePiece] ^= m.CaptureSquare.Board()
+		pos.b[pos.Opp()][All] ^= m.CaptureSquare.Board()
 		// Lose the relevant castling right
 		switch {
-		case (pos.Opp == White && m.CaptureSquare == a1) || (pos.Opp == Black && m.CaptureSquare == a8):
-			pos.QSCastle[pos.Opp] = false
-		case (pos.Opp == White && m.CaptureSquare == h1) || (pos.Opp == Black && m.CaptureSquare == h8):
-			pos.KSCastle[pos.Opp] = false
+		case (pos.ToMove == Black && m.CaptureSquare == a1) || (pos.ToMove == White && m.CaptureSquare == a8):
+			pos.QSCastle[pos.Opp()] = false
+		case (pos.ToMove == Black && m.CaptureSquare == h1) || (pos.ToMove == White && m.CaptureSquare == h8):
+			pos.KSCastle[pos.Opp()] = false
 		}
 	case m.IsQSCastle():
 		// Move the castling rook
@@ -98,7 +98,7 @@ func Make(pos Position, m Move) Position {
 	if pos.ToMove == Black {
 		pos.FullMove++
 	}
-	pos.ToMove, pos.Opp = pos.Opp, pos.ToMove
+	pos.ToMove = pos.Opp()
 
 	return pos
 }
@@ -169,13 +169,13 @@ func PawnMoves(pos Position) (moves []Move) {
 				}
 				moves = append(moves, m)
 			}
-			for dst := whitePawnAttacks(f, empty) & pos.b[pos.Opp][All]; dst != 0; dst = ResetLS1B(dst) {
+			for dst := whitePawnAttacks(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
 				to := LS1BIndex(dst)
 				captureColor, capturePiece, ok := pos.PieceOn(to)
 				if !ok {
 					log.Fatalf("PawnMoves (White): attempted capture on empty Square %v", to)
 				}
-				if captureColor != pos.Opp {
+				if captureColor != pos.Opp() {
 					log.Fatalf("PawnMoves (White): attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m := Move{From: from, To: to, Piece: Pawn, CapturePiece: capturePiece, CaptureSquare: to}
@@ -206,13 +206,13 @@ func PawnMoves(pos Position) (moves []Move) {
 				}
 				moves = append(moves, m)
 			}
-			for dst := blackPawnAttacks(f, empty) & pos.b[pos.Opp][All]; dst != 0; dst = ResetLS1B(dst) {
+			for dst := blackPawnAttacks(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
 				to := LS1BIndex(dst)
 				captureColor, capturePiece, ok := pos.PieceOn(to)
 				if !ok {
 					log.Fatalf("PawnMoves (Black): attempted capture on empty Square %v", to)
 				}
-				if captureColor != pos.Opp {
+				if captureColor != pos.Opp() {
 					log.Fatalf("PawnMoves (Black): attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m := Move{From: from, To: to, Piece: Pawn, CapturePiece: capturePiece, CaptureSquare: to}
@@ -263,12 +263,12 @@ func KnightMoves(pos Position) (moves []Move) {
 		for dst := knightAttacks[from] &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Knight}
-			if t&pos.b[pos.Opp][All] != 0 {
+			if t&pos.b[pos.Opp()][All] != 0 {
 				captureColor, capturePiece, ok := pos.PieceOn(to)
 				if !ok {
 					log.Fatalf("KnightMoves: attempted capture on empty Square %v", to)
 				}
-				if captureColor != pos.Opp {
+				if captureColor != pos.Opp() {
 					log.Fatalf("KnightMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m.CapturePiece = capturePiece
@@ -288,12 +288,12 @@ func BishopMoves(pos Position) (moves []Move) {
 		for dst := bishopAttacks(f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Bishop}
-			if t&pos.b[pos.Opp][All] != 0 {
+			if t&pos.b[pos.Opp()][All] != 0 {
 				captureColor, capturePiece, ok := pos.PieceOn(to)
 				if !ok {
 					log.Fatalf("BishopMoves: attempted capture on empty Square %v", to)
 				}
-				if captureColor != pos.Opp {
+				if captureColor != pos.Opp() {
 					log.Fatalf("BishopMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m.CapturePiece = capturePiece
@@ -313,12 +313,12 @@ func RookMoves(pos Position) (moves []Move) {
 		for dst := rookAttacks(f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Rook}
-			if t&pos.b[pos.Opp][All] != 0 {
+			if t&pos.b[pos.Opp()][All] != 0 {
 				captureColor, capturePiece, ok := pos.PieceOn(to)
 				if !ok {
 					log.Fatalf("RookMoves: attempted capture on empty Square %v", to)
 				}
-				if captureColor != pos.Opp {
+				if captureColor != pos.Opp() {
 					log.Fatalf("RookMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m.CapturePiece = capturePiece
@@ -338,12 +338,12 @@ func QueenMoves(pos Position) (moves []Move) {
 		for dst := queenAttacks(f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Queen}
-			if t&pos.b[pos.Opp][All] != 0 {
+			if t&pos.b[pos.Opp()][All] != 0 {
 				captureColor, capturePiece, ok := pos.PieceOn(to)
 				if !ok {
 					log.Fatalf("QueenMoves: attempted capture on empty Square %v", to)
 				}
-				if captureColor != pos.Opp {
+				if captureColor != pos.Opp() {
 					log.Fatalf("QueenMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
 				}
 				m.CapturePiece = capturePiece
@@ -361,12 +361,12 @@ func KingMoves(pos Position) (moves []Move) {
 	for dst := kingAttacks[from] &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 		t, to := LS1B(dst), LS1BIndex(dst)
 		m := Move{From: from, To: to, Piece: King}
-		if t&pos.b[pos.Opp][All] != 0 {
+		if t&pos.b[pos.Opp()][All] != 0 {
 			captureColor, capturePiece, ok := pos.PieceOn(to)
 			if !ok {
 				log.Fatalf("KingMoves: attempted capture on empty Square %v", to)
 			}
-			if captureColor != pos.Opp {
+			if captureColor != pos.Opp() {
 				log.Fatalf("KingMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
 			}
 			m.CapturePiece = capturePiece
@@ -394,7 +394,7 @@ func canQSCastle(pos Position) bool {
 		return false
 	}
 	for dst := QSCastleKingSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
-		if IsAttacked(pos, LS1BIndex(dst), pos.Opp) {
+		if IsAttacked(pos, LS1BIndex(dst), pos.Opp()) {
 			return false
 		}
 	}
@@ -411,7 +411,7 @@ func canKSCastle(pos Position) bool {
 		return false
 	}
 	for dst := KSCastleKingSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
-		if IsAttacked(pos, LS1BIndex(dst), pos.Opp) {
+		if IsAttacked(pos, LS1BIndex(dst), pos.Opp()) {
 			return false
 		}
 	}

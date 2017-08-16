@@ -49,13 +49,13 @@ func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, sea
 
 // IsCheck returns whether the king of the side to move is in check.
 func IsCheck(pos Position) bool {
-	return IsAttacked(pos, pos.KingSquare[pos.ToMove], pos.Opp)
+	return IsAttacked(pos, pos.KingSquare[pos.ToMove], pos.Opp())
 }
 
 // IsLegal returns whether a Position results from a legal move.
 // A position is illegal if the king of the side that just moved is in check.
 func IsLegal(pos Position) bool {
-	return !IsAttacked(pos, pos.KingSquare[pos.Opp], pos.ToMove)
+	return !IsAttacked(pos, pos.KingSquare[pos.Opp()], pos.ToMove)
 }
 
 // IsTerminal returns whether or not a Position is checkmate or stalemate.

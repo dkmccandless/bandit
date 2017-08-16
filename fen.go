@@ -97,9 +97,9 @@ func ParseFEN(fen string) (pos Position, err error) {
 	// side to move
 	switch fields[1] {
 	case "w":
-		pos.ToMove, pos.Opp = White, Black
+		pos.ToMove = White
 	case "b":
-		pos.ToMove, pos.Opp = Black, White
+		pos.ToMove = Black
 	default:
 		return pos, fmt.Errorf("ParseFEN: Invalid active player field %v", fields[1])
 	}
@@ -145,7 +145,7 @@ func ParseFEN(fen string) (pos Position, err error) {
 // ParseSquare returns the Square represented by the string.
 // It returns an error if the string does not consist of one letter in [a, h] followed by one number in [1, 8].
 func ParseSquare(s string) (sq Square, err error) {
-	if len(s) != 2 || !('a' <= s[0] && s[0] <= 'h') || !isNumber(rune(s[1])) {
+	if len(s) != 2 || !isFile(rune(s[0])) || !isNumber(rune(s[1])) {
 		return 0, fmt.Errorf("ParseSquare(%v): Invalid character", s)
 	}
 	return Square(8*(s[1]-'1') + s[0] - 'a'), nil
@@ -208,3 +208,4 @@ func FEN(pos Position) string {
 func isWhite(r rune) bool  { return r == 'P' || r == 'N' || r == 'B' || r == 'R' || r == 'Q' || r == 'K' }
 func isBlack(r rune) bool  { return r == 'p' || r == 'n' || r == 'b' || r == 'r' || r == 'q' || r == 'k' }
 func isNumber(r rune) bool { return '1' <= r && r <= '8' }
+func isFile(r rune) bool   { return 'a' <= r && r <= 'h' }

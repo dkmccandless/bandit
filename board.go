@@ -187,8 +187,8 @@ type Position struct {
 	// A value of 0 indicates that there is no en passant opportunity. Behavior is undefined for any other value.
 	ep Square
 
-	// The side to move in the current position, and the opposing side (which had the previous move).
-	ToMove, Opp Color
+	// The side to move in the current position.
+	ToMove Color
 
 	// The number of half-moves (plies) since the most recent capture or pawn move,
 	// for use in determining eligibility for a draw under the fifty-move rule.
@@ -212,6 +212,9 @@ var InitialPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0
 
 // InitialPosition represents the position at the beginning of a game of chess.
 var InitialPosition, _ = ParseFEN(InitialPositionFEN)
+
+// Opp returns the Color of the player who does not have the move.
+func (pos Position) Opp() Color { return 1 - pos.ToMove }
 
 // PieceOn returns the Color and Piece type of the piece, if any, on the specified Square.
 func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {
