@@ -6,13 +6,15 @@ import (
 	"time"
 )
 
-var (
-	depth = flag.Int("depth", 4, "the search depth")
-	fen   = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
-)
-
 func main() {
+	var (
+		depth = flag.Int("depth", 4, "the search depth")
+		fen   = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
+	)
 	flag.Parse()
+	if *depth < 1 {
+		panic("invalid search depth")
+	}
 
 	pos, err := ParseFEN(*fen)
 	if err != nil {
