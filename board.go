@@ -206,6 +206,9 @@ type Position struct {
 	// pawns, knights, bishops, rooks, queens, and the king,
 	// with an additional Board representing their union.
 	b [2][8]Board
+
+	// The position's Zobrist bitstring.
+	z Zobrist
 }
 
 var InitialPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -214,7 +217,7 @@ var InitialPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0
 var InitialPosition, _ = ParseFEN(InitialPositionFEN)
 
 // Opp returns the Color of the player who does not have the move.
-func (pos Position) Opp() Color { return 1 - pos.ToMove }
+func (pos Position) Opp() Color { return pos.ToMove ^ 1 }
 
 // PieceOn returns the Color and Piece type of the piece, if any, on the specified Square.
 func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {

@@ -16,6 +16,7 @@ var positionTests = []struct {
 			{0, 0, 0, 0, 0, 0, a1.Board(), a1.Board()},
 			{0, 0, 0, 0, 0, 0, c1.Board(), c1.Board()},
 		},
+		z: pieceZobrist[White][King][a1] ^ pieceZobrist[Black][King][c1] ^ blackToMoveZobrist,
 	}},
 	{"r3k2r/8/8/3p4/3P4/8/8/R3K2R w Qkq d6 0 1", Position{
 		QSCastle:   [2]bool{true, true},
@@ -29,6 +30,9 @@ var positionTests = []struct {
 			{0, d4.Board(), 0, 0, a1.Board() ^ h1.Board(), 0, e1.Board(), a1.Board() ^ e1.Board() ^ h1.Board() ^ d4.Board()},
 			{0, d5.Board(), 0, 0, a8.Board() ^ h8.Board(), 0, e8.Board(), d5.Board() ^ a8.Board() ^ e8.Board() ^ h8.Board()},
 		},
+		z: pieceZobrist[White][Rook][a1] ^ pieceZobrist[White][King][e1] ^ pieceZobrist[White][Rook][h1] ^ pieceZobrist[White][Pawn][d4] ^
+			pieceZobrist[Black][Pawn][d5] ^ pieceZobrist[Black][Rook][a8] ^ pieceZobrist[Black][King][e8] ^ pieceZobrist[Black][Rook][h8] ^
+			qsCastleZobrist[White] ^ qsCastleZobrist[Black] ^ ksCastleZobrist[Black], // no pawn can capture en passant
 	}},
 }
 

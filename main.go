@@ -36,6 +36,7 @@ func main() {
 		movesText += algebraic(pos, move) + " "
 
 		pos = Make(pos, move)
+		pos.z = pos.Zobrist()
 
 		fmt.Print(pos.Display())
 	}

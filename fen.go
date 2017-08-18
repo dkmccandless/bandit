@@ -139,6 +139,9 @@ func ParseFEN(fen string) (pos Position, err error) {
 		return
 	}
 
+	// Zobrist bitstring
+	pos.z = pos.Zobrist()
+
 	return
 }
 
