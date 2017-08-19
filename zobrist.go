@@ -35,7 +35,7 @@ var (
 
 func (z *Zobrist) xor(x Zobrist) { *z ^= x }
 
-func (z *Zobrist) xorPiece(c Color, p Piece, sq Square) { *z ^= pieceZobrist[c][p][sq] }
+func (z *Zobrist) xorPiece(c Color, p Piece, sq Square) { z.xor(pieceZobrist[c][p][sq]) }
 
 // Zobrist returns a Position's Zobrist bitstring.
 func (pos Position) Zobrist() Zobrist {
@@ -55,17 +55,8 @@ func (pos Position) Zobrist() Zobrist {
 			z.xor(ksCastleZobrist[c])
 		}
 	}
-	if pos.ep != 0 && pos.ep.File() != 0 {
-		westCapturer := pos.ep ^ 8 - 1
-		if c, p, _ := pos.PieceOn(westCapturer); c == pos.ToMove && p == Pawn {
-			z.xor(canEPCaptureZobrist[westCapturer.File()])
-		}
-	}
-	if pos.ep != 0 && pos.ep.File() != 7 {
-		eastCapturer := pos.ep ^ 8 + 1
-		if c, p, _ := pos.PieceOn(eastCapturer); c == pos.ToMove && p == Pawn {
-			z.xor(canEPCaptureZobrist[eastCapturer.File()])
-		}
+	for _, sq := range eligibleEPCapturers(pos) {
+		z.xor(canEPCaptureZobrist[sq.File()])
 	}
 	if pos.ToMove == Black {
 		z.xor(blackToMoveZobrist)

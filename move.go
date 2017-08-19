@@ -34,62 +34,94 @@ func (m Move) IsKSCastle() bool { return m.Piece == King && m.To-m.From == 2 }
 
 // Make applies a Move to a Position and returns the resulting Position.
 func Make(pos Position, m Move) Position {
+	// Remove en passant capturing rights from the Zobrist bitstring.
+	// In the event of an en passant capture, this must be done before the pawn bitboard is changed.
+	if pos.ep != 0 {
+		for _, sq := range eligibleEPCapturers(pos) {
+			pos.z.xor(canEPCaptureZobrist[sq.File()])
+		}
+	}
+
 	// Move the piece
 	fromTo := m.From.Board() ^ m.To.Board()
 	pos.b[pos.ToMove][m.Piece] ^= fromTo
 	pos.b[pos.ToMove][All] ^= fromTo
+	pos.z.xorPiece(pos.ToMove, m.Piece, m.From)
+	pos.z.xorPiece(pos.ToMove, m.Piece, m.To)
 
 	switch {
 	case m.IsCapture():
 		// Remove the captured piece from CaptureSquare, not To
 		pos.b[pos.Opp()][m.CapturePiece] ^= m.CaptureSquare.Board()
 		pos.b[pos.Opp()][All] ^= m.CaptureSquare.Board()
+		pos.z.xorPiece(pos.Opp(), m.CapturePiece, m.CaptureSquare)
 		// Lose the relevant castling right
 		switch {
 		case (pos.ToMove == Black && m.CaptureSquare == a1) || (pos.ToMove == White && m.CaptureSquare == a8):
+			if pos.QSCastle[pos.Opp()] {
+				pos.z.xor(qsCastleZobrist[pos.Opp()])
+			}
 			pos.QSCastle[pos.Opp()] = false
 		case (pos.ToMove == Black && m.CaptureSquare == h1) || (pos.ToMove == White && m.CaptureSquare == h8):
+			if pos.KSCastle[pos.Opp()] {
+				pos.z.xor(ksCastleZobrist[pos.Opp()])
+			}
 			pos.KSCastle[pos.Opp()] = false
 		}
 	case m.IsQSCastle():
 		// Move the castling rook
-		rookFromTo := (m.From - 4).Board() ^ (m.From - 1).Board()
+		rookFromSquare, rookToSquare := m.From-4, m.From-1
+		rookFromTo := rookFromSquare.Board() ^ rookToSquare.Board()
 		pos.b[pos.ToMove][Rook] ^= rookFromTo
 		pos.b[pos.ToMove][All] ^= rookFromTo
+		pos.z.xorPiece(pos.ToMove, Rook, rookFromSquare)
+		pos.z.xorPiece(pos.ToMove, Rook, rookToSquare)
 	case m.IsKSCastle():
 		// Move the castling rook
-		rookFromTo := (m.From + 3).Board() ^ (m.From + 1).Board()
+		rookFromSquare, rookToSquare := m.From+3, m.From+1
+		rookFromTo := rookFromSquare.Board() ^ rookToSquare.Board()
 		pos.b[pos.ToMove][Rook] ^= rookFromTo
 		pos.b[pos.ToMove][All] ^= rookFromTo
+		pos.z.xorPiece(pos.ToMove, Rook, rookFromSquare)
+		pos.z.xorPiece(pos.ToMove, Rook, rookToSquare)
 	}
 
 	if m.IsPromotion() {
 		// Replace the Pawn with PromotePiece
 		pos.b[pos.ToMove][Pawn] ^= m.To.Board()
 		pos.b[pos.ToMove][m.PromotePiece] ^= m.To.Board()
+		pos.z.xorPiece(pos.ToMove, Pawn, m.To)
+		pos.z.xorPiece(pos.ToMove, m.PromotePiece, m.To)
 	}
 
 	switch m.Piece {
 	case King:
 		// Update KingSquare and forfeit all castling rights
 		pos.KingSquare[pos.ToMove] = m.To
+		if pos.QSCastle[pos.ToMove] {
+			pos.z.xor(qsCastleZobrist[pos.ToMove])
+		}
 		pos.QSCastle[pos.ToMove] = false
+		if pos.KSCastle[pos.ToMove] {
+			pos.z.xor(ksCastleZobrist[pos.ToMove])
+		}
 		pos.KSCastle[pos.ToMove] = false
 	case Rook:
 		// Forfeit the relevant castling right
 		switch {
 		case (pos.ToMove == White && m.From == a1) || (pos.ToMove == Black && m.From == a8):
+			if pos.QSCastle[pos.ToMove] {
+				pos.z.xor(qsCastleZobrist[pos.ToMove])
+			}
 			pos.QSCastle[pos.ToMove] = false
 		case (pos.ToMove == White && m.From == h1) || (pos.ToMove == Black && m.From == h8):
+			if pos.KSCastle[pos.ToMove] {
+				pos.z.xor(ksCastleZobrist[pos.ToMove])
+			}
 			pos.KSCastle[pos.ToMove] = false
 		}
 	}
 
-	if m.IsDouble() {
-		pos.ep = (m.From + m.To) / 2
-	} else {
-		pos.ep = 0
-	}
 	if m.Piece == Pawn || m.IsCapture() {
 		pos.HalfMove = 0
 	} else {
@@ -99,6 +131,18 @@ func Make(pos Position, m Move) Position {
 		pos.FullMove++
 	}
 	pos.ToMove = pos.Opp()
+	pos.z.xor(blackToMoveZobrist)
+
+	if m.IsDouble() {
+		pos.ep = (m.From + m.To) / 2
+		// Add en passant capturing rights to the Zobrist bitstring.
+		// This must be done after the side to move is changed.
+		for _, sq := range eligibleEPCapturers(pos) {
+			pos.z.xor(canEPCaptureZobrist[sq.File()])
+		}
+	} else {
+		pos.ep = 0
+	}
 
 	return pos
 }
@@ -232,16 +276,8 @@ func PawnMoves(pos Position) (moves []Move) {
 
 	if pos.ep != 0 {
 		// Double pawn push occurred on the previous move
-		var epSources Board
-		var epCaptureSquare Square
-		switch pos.ToMove {
-		case White:
-			epSources = southwest(pos.ep.Board()) | southeast(pos.ep.Board())
-			epCaptureSquare = pos.ep - 8
-		case Black:
-			epSources = northwest(pos.ep.Board()) | northeast(pos.ep.Board())
-			epCaptureSquare = pos.ep + 8
-		}
+		epCaptureSquare := pos.ep ^ 8
+		epSources := west(epCaptureSquare.Board()) | east(epCaptureSquare.Board())
 		for src := epSources & pos.b[pos.ToMove][Pawn]; src != 0; src = ResetLS1B(src) {
 			from := LS1BIndex(src)
 			moves = append(moves, Move{
@@ -491,6 +527,24 @@ func southwest(b Board) Board { return west(south(b)) }
 func southeast(b Board) Board { return east(south(b)) }
 func northwest(b Board) Board { return west(north(b)) }
 func northeast(b Board) Board { return east(north(b)) }
+
+// eligibleEPCapturers returns a slice of the Squares of all pawns that may pseudo-legally capture en passant in a Position.
+func eligibleEPCapturers(pos Position) []Square {
+	var s []Square
+	if pos.ep != 0 && pos.ep.File() != 0 {
+		westCaptureSquare := pos.ep ^ 8 - 1
+		if c, p, _ := pos.PieceOn(westCaptureSquare); c == pos.ToMove && p == Pawn {
+			s = append(s, westCaptureSquare)
+		}
+	}
+	if pos.ep != 0 && pos.ep.File() != 7 {
+		eastCaptureSquare := pos.ep ^ 8 + 1
+		if c, p, _ := pos.PieceOn(eastCaptureSquare); c == pos.ToMove && p == Pawn {
+			s = append(s, eastCaptureSquare)
+		}
+	}
+	return s
+}
 
 // algebraic returns the description of a Move in algebraic notation.
 func algebraic(pos Position, m Move) string {

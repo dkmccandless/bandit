@@ -38,7 +38,9 @@ func main() {
 		movesText += algebraic(pos, move) + " "
 
 		pos = Make(pos, move)
-		pos.z = pos.Zobrist()
+		if pos.z != pos.Zobrist() {
+			panic(fmt.Sprintf("pos.z is %x, want %x", pos.z, pos.Zobrist()))
+		}
 
 		fmt.Print(pos.Display())
 	}
