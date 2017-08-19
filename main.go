@@ -23,6 +23,8 @@ func main() {
 
 	var movesText string
 
+	posZobrists := make(map[Zobrist]int)
+
 	for !IsTerminal(pos) {
 		moveTime := time.Now()
 
@@ -43,6 +45,13 @@ func main() {
 		}
 
 		fmt.Print(pos.Display())
+
+		// Check for threefold repetition
+		posZobrists[pos.z]++
+		if posZobrists[pos.z] == 3 {
+			movesText += "1/2-1/2"
+			break
+		}
 	}
 
 	fmt.Printf("\n%v", movesText)
