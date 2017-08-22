@@ -156,7 +156,53 @@ func Candidates(pos Position) []Move {
 	can = append(can, RookMoves(pos)...)
 	can = append(can, QueenMoves(pos)...)
 	can = append(can, KingMoves(pos)...)
-	return can
+
+	// Counting sort into the order winning captures, equal captures, losing captures, non-captures.
+	// (This terminology anticipates that the captured piece is defended and the capturing piece is liable to be captured in exchange.)
+	const (
+		winning = iota
+		equal
+		losing
+		noncapture
+	)
+	bins := make([]int, 4)
+	for _, m := range can {
+		var moveType int
+		switch {
+		case !m.IsCapture():
+			moveType = noncapture
+		case m.Piece == m.CapturePiece || (m.Piece == Bishop && m.CapturePiece == Knight) || (m.Piece == Knight && m.CapturePiece == Bishop):
+			moveType = equal
+		case m.Piece < m.CapturePiece:
+			moveType = winning
+		case m.Piece > m.CapturePiece:
+			moveType = losing
+		}
+		bins[moveType]++
+	}
+	index := make([]int, len(bins))
+	for i := range index {
+		for j := 0; j < i; j++ {
+			index[i] += bins[j]
+		}
+	}
+	sorted := make([]Move, len(can))
+	for _, m := range can {
+		var moveType int
+		switch {
+		case !m.IsCapture():
+			moveType = noncapture
+		case m.Piece == m.CapturePiece || (m.Piece == Bishop && m.CapturePiece == Knight) || (m.Piece == Knight && m.CapturePiece == Bishop):
+			moveType = equal
+		case m.Piece < m.CapturePiece:
+			moveType = winning
+		case m.Piece > m.CapturePiece:
+			moveType = losing
+		}
+		sorted[index[moveType]] = m
+		index[moveType]++
+	}
+	return sorted
 }
 
 var (
