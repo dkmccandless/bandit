@@ -5,12 +5,17 @@ const (
 )
 
 func SearchPosition(pos Position, depth int) (int, Move) {
-	return negamax(pos, -evalInf, evalInf, depth, true, negamax)
+	var score int
+	var recommended Move
+	for d := 1; d <= depth; d++ {
+		score, recommended = negamax(pos, recommended, -evalInf, evalInf, d, true, negamax)
+	}
+	return score, recommended
 }
 
-type SearchFunc func(Position, int, int, int, bool, SearchFunc) (int, Move)
+type SearchFunc func(Position, Move, int, int, int, bool, SearchFunc) (int, Move)
 
-func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, search SearchFunc) (bestScore int, bestMove Move) {
+func negamax(pos Position, recommended Move, alpha int, beta int, depth int, allowCutoff bool, search SearchFunc) (bestScore int, bestMove Move) {
 	if IsTerminal(pos) { // checkmate or stalemate
 		if IsCheck(pos) {
 			bestScore = -evalInf
@@ -23,15 +28,20 @@ func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, sea
 	}
 
 	moves := Candidates(pos) // pseudo-legal
-	bestScore = alpha
-	// Initialize bestMove with a legal move
-	for i, m := range moves {
-		if IsLegal(Make(pos, m)) {
-			bestMove = m
-			moves = moves[i:]
-			break
+	// Initialize bestMove with a legal Move if no recommended Move is provided
+	if recommended != (Move{}) {
+		moves = reorder(moves, recommended)
+		bestMove = recommended
+	} else {
+		for i, m := range moves {
+			if IsLegal(Make(pos, m)) {
+				bestMove = m
+				moves = moves[i:]
+				break
+			}
 		}
 	}
+	bestScore = alpha
 
 	for _, m := range moves {
 		newpos := Make(pos, m)
@@ -39,7 +49,7 @@ func negamax(pos Position, alpha int, beta int, depth int, allowCutoff bool, sea
 			continue
 		}
 
-		score, _ := search(newpos, -beta, -alpha, depth-1, allowCutoff, search)
+		score, _ := search(newpos, Move{}, -beta, -alpha, depth-1, allowCutoff, search)
 		score *= -1
 
 		if score > bestScore {
@@ -75,4 +85,16 @@ func IsTerminal(pos Position) bool {
 		}
 	}
 	return true
+}
+
+// reorder returns a reordered slice of Moves with the specified Move first.
+// The slice is not modified if it does not contain the specified Move.
+func reorder(moves []Move, m Move) []Move {
+	for i := range moves {
+		if moves[i] == m {
+			moves = append(append(moves[i:i+1], moves[:i]...), moves[i+1:]...)
+			return moves
+		}
+	}
+	return moves
 }

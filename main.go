@@ -21,8 +21,8 @@ func main() {
 		panic(err)
 	}
 
+	tt := time.Now()
 	var movesText string
-
 	posZobrists := make(map[Zobrist]int)
 
 	for !IsTerminal(pos) {
@@ -55,4 +55,5 @@ func main() {
 	}
 
 	fmt.Printf("\n%v", movesText)
+	fmt.Println(time.Since(tt))
 }
