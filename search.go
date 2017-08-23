@@ -90,10 +90,15 @@ func IsTerminal(pos Position) bool {
 // reorder returns a reordered slice of Moves with the specified Move first.
 // The slice is not modified if it does not contain the specified Move.
 func reorder(moves []Move, m Move) []Move {
-	for i := range moves {
-		if moves[i] == m {
-			moves = append(append(moves[i:i+1], moves[:i]...), moves[i+1:]...)
-			return moves
+	for _, n := range moves {
+		if n == m {
+			s := []Move{m}
+			for _, n := range moves {
+				if n != m {
+					s = append(s, n)
+				}
+			}
+			return s
 		}
 	}
 	return moves
