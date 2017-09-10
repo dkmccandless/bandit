@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/bits"
 	"strings"
 )
 
@@ -241,24 +242,6 @@ func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {
 	return
 }
 
-// deBruijn is a sequence of bits each consecutive six-bit subsequence of which corresponds to a different number in [0, 64).
-// It is used with dbIndex to provide quick lookup of the position of a single set bit.
-const deBruijn = 0x022c98fdaf386e95 // = 0b0000001000101100100110001111110110101111001110000110111010010101
-
-// The positions of the consecutive six-bit numbers appearing as subsequences of the deBruijn sequence,
-// in little-endian encoding but counted from the left.
-// Left-shifting the deBruijn constant by i bits yields the number dbIndex[i] in the most significant six bits.
-var dbIndex = []Square{
-	0, 1, 2, 45, 3, 7, 46, 21,
-	4, 14, 57, 8, 17, 47, 40, 22,
-	62, 5, 55, 15, 60, 58, 9, 33,
-	18, 11, 30, 48, 41, 51, 35, 23,
-	63, 44, 6, 20, 13, 56, 16, 39,
-	61, 54, 59, 32, 10, 29, 50, 34,
-	43, 19, 12, 38, 53, 31, 28, 49,
-	42, 37, 52, 27, 36, 26, 25, 24,
-}
-
 // LS1B returns a Board consisting of only the least significant 1 bit of the input Board.
 func LS1B(b Board) Board {
 	if b == 0 {
@@ -268,10 +251,8 @@ func LS1B(b Board) Board {
 }
 
 // LS1BIndex returns the position of the least significant 1 bit of the input Board.
-// It left-shifts the deBruijn constant by multiplying it by the least significant 1 bit
-// and then uses the most significant six bits to look up the corresponding value in dbIndex.
 func LS1BIndex(b Board) Square {
-	return dbIndex[(deBruijn*LS1B(b))>>58]
+	return Square(bits.TrailingZeros64(uint64(b)))
 }
 
 // ResetLS1B returns a Board consisting of all set bits of the input Board except for the least significant one.
@@ -284,12 +265,7 @@ func ResetLS1B(b Board) Board {
 
 // PopCount returns the number of 1 bits in the input Board.
 func PopCount(b Board) int {
-	var n int
-	for b != 0 {
-		n++
-		b = ResetLS1B(b)
-	}
-	return n
+	return bits.OnesCount64(uint64(b))
 }
 
 func pieceChar(c Color, p Piece) string {
