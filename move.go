@@ -37,8 +37,11 @@ func Make(pos Position, m Move) Position {
 	// Remove en passant capturing rights from the Zobrist bitstring.
 	// In the event of an en passant capture, this must be done before the pawn bitboard is changed.
 	if pos.ep != 0 {
-		for _, sq := range eligibleEPCapturers(pos) {
-			pos.z.xor(canEPCaptureZobrist[sq.File()])
+		if sp := eligibleEPCapturers(pos); sp.a != 0 {
+			pos.z.xor(canEPCaptureZobrist[sp.a.File()])
+			if sp.b != 0 {
+				pos.z.xor(canEPCaptureZobrist[sp.b.File()])
+			}
 		}
 	}
 
@@ -137,8 +140,11 @@ func Make(pos Position, m Move) Position {
 		pos.ep = (m.From + m.To) / 2
 		// Add en passant capturing rights to the Zobrist bitstring.
 		// This must be done after the side to move is changed.
-		for _, sq := range eligibleEPCapturers(pos) {
-			pos.z.xor(canEPCaptureZobrist[sq.File()])
+		if sp := eligibleEPCapturers(pos); sp.a != 0 {
+			pos.z.xor(canEPCaptureZobrist[sp.a.File()])
+			if sp.b != 0 {
+				pos.z.xor(canEPCaptureZobrist[sp.b.File()])
+			}
 		}
 	} else {
 		pos.ep = 0
@@ -574,19 +580,24 @@ func southeast(b Board) Board { return east(south(b)) }
 func northwest(b Board) Board { return west(north(b)) }
 func northeast(b Board) Board { return east(north(b)) }
 
-// eligibleEPCapturers returns a slice of the Squares of all pawns that may pseudo-legally capture en passant in a Position.
-func eligibleEPCapturers(pos Position) []Square {
-	var s []Square
+// eligibleEPCapturers returns a struct of two Squares whose values are the Squares of all pawns that may pseudo-legally capture en passant in a Position.
+// If only one pawn can capture en passant, its Square is in the first field.
+func eligibleEPCapturers(pos Position) struct{ a, b Square } {
+	var s struct{ a, b Square }
 	if pos.ep != 0 && pos.ep.File() != 0 {
 		westCaptureSquare := pos.ep ^ 8 - 1
 		if c, p := pos.PieceOn(westCaptureSquare); c == pos.ToMove && p == Pawn {
-			s = append(s, westCaptureSquare)
+			s.a = westCaptureSquare
 		}
 	}
 	if pos.ep != 0 && pos.ep.File() != 7 {
 		eastCaptureSquare := pos.ep ^ 8 + 1
 		if c, p := pos.PieceOn(eastCaptureSquare); c == pos.ToMove && p == Pawn {
-			s = append(s, eastCaptureSquare)
+			if s.a != 0 {
+				s.b = eastCaptureSquare
+			} else {
+				s.a = eastCaptureSquare
+			}
 		}
 	}
 	return s
