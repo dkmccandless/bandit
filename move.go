@@ -261,8 +261,8 @@ func PawnMoves(pos Position) (moves []Move) {
 			}
 			for dst := whitePawnAttacks(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
 				to := LS1BIndex(dst)
-				captureColor, capturePiece, ok := pos.PieceOn(to)
-				if !ok {
+				captureColor, capturePiece := pos.PieceOn(to)
+				if capturePiece == None {
 					log.Fatalf("PawnMoves (White): attempted capture on empty Square %v", to)
 				}
 				if captureColor != pos.Opp() {
@@ -298,8 +298,8 @@ func PawnMoves(pos Position) (moves []Move) {
 			}
 			for dst := blackPawnAttacks(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
 				to := LS1BIndex(dst)
-				captureColor, capturePiece, ok := pos.PieceOn(to)
-				if !ok {
+				captureColor, capturePiece := pos.PieceOn(to)
+				if capturePiece == None {
 					log.Fatalf("PawnMoves (Black): attempted capture on empty Square %v", to)
 				}
 				if captureColor != pos.Opp() {
@@ -346,8 +346,8 @@ func KnightMoves(pos Position) (moves []Move) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Knight}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece, ok := pos.PieceOn(to)
-				if !ok {
+				captureColor, capturePiece := pos.PieceOn(to)
+				if capturePiece == None {
 					log.Fatalf("KnightMoves: attempted capture on empty Square %v", to)
 				}
 				if captureColor != pos.Opp() {
@@ -371,8 +371,8 @@ func BishopMoves(pos Position) (moves []Move) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Bishop}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece, ok := pos.PieceOn(to)
-				if !ok {
+				captureColor, capturePiece := pos.PieceOn(to)
+				if capturePiece == None {
 					log.Fatalf("BishopMoves: attempted capture on empty Square %v", to)
 				}
 				if captureColor != pos.Opp() {
@@ -396,8 +396,8 @@ func RookMoves(pos Position) (moves []Move) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Rook}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece, ok := pos.PieceOn(to)
-				if !ok {
+				captureColor, capturePiece := pos.PieceOn(to)
+				if capturePiece == None {
 					log.Fatalf("RookMoves: attempted capture on empty Square %v", to)
 				}
 				if captureColor != pos.Opp() {
@@ -421,8 +421,8 @@ func QueenMoves(pos Position) (moves []Move) {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Queen}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece, ok := pos.PieceOn(to)
-				if !ok {
+				captureColor, capturePiece := pos.PieceOn(to)
+				if capturePiece == None {
 					log.Fatalf("QueenMoves: attempted capture on empty Square %v", to)
 				}
 				if captureColor != pos.Opp() {
@@ -444,8 +444,8 @@ func KingMoves(pos Position) (moves []Move) {
 		t, to := LS1B(dst), LS1BIndex(dst)
 		m := Move{From: from, To: to, Piece: King}
 		if t&pos.b[pos.Opp()][All] != 0 {
-			captureColor, capturePiece, ok := pos.PieceOn(to)
-			if !ok {
+			captureColor, capturePiece := pos.PieceOn(to)
+			if capturePiece == None {
 				log.Fatalf("KingMoves: attempted capture on empty Square %v", to)
 			}
 			if captureColor != pos.Opp() {
@@ -579,13 +579,13 @@ func eligibleEPCapturers(pos Position) []Square {
 	var s []Square
 	if pos.ep != 0 && pos.ep.File() != 0 {
 		westCaptureSquare := pos.ep ^ 8 - 1
-		if c, p, _ := pos.PieceOn(westCaptureSquare); c == pos.ToMove && p == Pawn {
+		if c, p := pos.PieceOn(westCaptureSquare); c == pos.ToMove && p == Pawn {
 			s = append(s, westCaptureSquare)
 		}
 	}
 	if pos.ep != 0 && pos.ep.File() != 7 {
 		eastCaptureSquare := pos.ep ^ 8 + 1
-		if c, p, _ := pos.PieceOn(eastCaptureSquare); c == pos.ToMove && p == Pawn {
+		if c, p := pos.PieceOn(eastCaptureSquare); c == pos.ToMove && p == Pawn {
 			s = append(s, eastCaptureSquare)
 		}
 	}

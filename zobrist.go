@@ -41,7 +41,7 @@ func (z *Zobrist) xorPiece(c Color, p Piece, sq Square) { z.xor(pieceZobrist[c][
 func (pos Position) Zobrist() Zobrist {
 	var z Zobrist
 	for sq := a1; sq <= h8; sq++ {
-		if c, p, ok := pos.PieceOn(sq); ok {
+		if c, p := pos.PieceOn(sq); p != None {
 			z.xorPiece(c, p, sq)
 		}
 	}

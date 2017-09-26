@@ -155,8 +155,8 @@ func Eval(pos Position) int {
 
 	var eval int
 	for sq := a1; sq <= h8; sq++ {
-		switch c, p, ok := pos.PieceOn(sq); {
-		case !ok:
+		switch c, p := pos.PieceOn(sq); {
+		case p == None:
 			continue
 		case p == King:
 			eval += evalMult(c) * taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase)

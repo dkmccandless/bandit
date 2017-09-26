@@ -221,7 +221,8 @@ var InitialPosition, _ = ParseFEN(InitialPositionFEN)
 func (pos Position) Opp() Color { return pos.ToMove ^ 1 }
 
 // PieceOn returns the Color and Piece type of the piece, if any, on the specified Square.
-func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {
+// It returns a Piece value of None if the Square is empty.
+func (pos Position) PieceOn(s Square) (c Color, p Piece) {
 	b := s.Board()
 	switch {
 	case pos.b[White][All]&b != 0:
@@ -233,12 +234,11 @@ func (pos Position) PieceOn(s Square) (c Color, p Piece, ok bool) {
 	}
 	for _, p = range []Piece{Pawn, Knight, Bishop, Rook, Queen, King} {
 		if pos.b[c][p]&b != 0 {
-			ok = true
 			return
 		}
 	}
 	// Error if neither return statement above is utilized
-	panic(fmt.Sprintf("PieceOn: nonexistent %v piece on square %v in position %+v", c, s, pos))
+	panic(fmt.Sprintf("PieceOn: invalid piece on square %v in position %+v", s, pos))
 	return
 }
 
@@ -280,7 +280,7 @@ func (pos Position) Display() string {
 	s := "\n"
 	for r := 7; r >= 0; r-- {
 		for f := 0; f < 8; f++ {
-			if c, p, ok := pos.PieceOn(Square(8*r + f)); ok {
+			if c, p := pos.PieceOn(Square(8*r + f)); p != None {
 				s += pieceChar(c, p)
 			} else {
 				s += "."

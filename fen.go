@@ -160,8 +160,8 @@ func FEN(pos Position) string {
 	for rank := 7; rank >= 0; rank-- {
 		var gap int
 		for sq := Square(8 * rank); sq < Square(8*(rank+1)); sq++ {
-			c, p, ok := pos.PieceOn(sq)
-			if ok {
+			c, p := pos.PieceOn(sq)
+			if p != None {
 				if gap != 0 {
 					s += strconv.Itoa(gap)
 					gap = 0
