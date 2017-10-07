@@ -155,7 +155,7 @@ func Make(pos Position, m Move) Position {
 
 // Candidates returns a slice of all pseudo-legal Moves in the current Position.
 func Candidates(pos Position) []Move {
-	can := []Move{}
+	can := make([]Move, 0, 100)
 	can = append(can, PawnMoves(pos)...)
 	can = append(can, KnightMoves(pos)...)
 	can = append(can, BishopMoves(pos)...)
@@ -243,7 +243,8 @@ var PieceMoves = []func(Position) []Move{
 }
 
 // PawnMoves returns a slice of all pseudo-legal Moves that pawns can make in the current Position.
-func PawnMoves(pos Position) (moves []Move) {
+func PawnMoves(pos Position) []Move {
+	moves := make([]Move, 0, 8*2*4) // cap: all pawns are on the 7th rank and can promote via capture to either side
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
 	for pawns := pos.b[pos.ToMove][Pawn]; pawns != 0; pawns = ResetLS1B(pawns) {
 		f, from := LS1B(pawns), LS1BIndex(pawns)
@@ -341,11 +342,12 @@ func PawnMoves(pos Position) (moves []Move) {
 			})
 		}
 	}
-	return
+	return moves
 }
 
 // KnightMoves returns a slice of all pseudo-legal Moves that knights can make in the current Position.
-func KnightMoves(pos Position) (moves []Move) {
+func KnightMoves(pos Position) []Move {
+	moves := make([]Move, 0, 2*8)
 	for knights := pos.b[pos.ToMove][Knight]; knights != 0; knights = ResetLS1B(knights) {
 		from := LS1BIndex(knights)
 		for dst := knightAttacks[from] &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
@@ -365,11 +367,12 @@ func KnightMoves(pos Position) (moves []Move) {
 			moves = append(moves, m)
 		}
 	}
-	return
+	return moves
 }
 
 // BishopMoves returns a slice of all pseudo-legal Moves that bishops can make in the current Position.
-func BishopMoves(pos Position) (moves []Move) {
+func BishopMoves(pos Position) []Move {
+	moves := make([]Move, 0, 2*14)
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
 	for bishops := pos.b[pos.ToMove][Bishop]; bishops != 0; bishops = ResetLS1B(bishops) {
 		f, from := LS1B(bishops), LS1BIndex(bishops)
@@ -390,11 +393,12 @@ func BishopMoves(pos Position) (moves []Move) {
 			moves = append(moves, m)
 		}
 	}
-	return
+	return moves
 }
 
 // RookMoves returns a slice of all pseudo-legal Moves that rooks can make in the current Position.
-func RookMoves(pos Position) (moves []Move) {
+func RookMoves(pos Position) []Move {
+	moves := make([]Move, 0, 2*14)
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
 	for rooks := pos.b[pos.ToMove][Rook]; rooks != 0; rooks = ResetLS1B(rooks) {
 		f, from := LS1B(rooks), LS1BIndex(rooks)
@@ -415,11 +419,12 @@ func RookMoves(pos Position) (moves []Move) {
 			moves = append(moves, m)
 		}
 	}
-	return
+	return moves
 }
 
 // QueenMoves returns a slice of all pseudo-legal Moves that queens can make in the current Position.
-func QueenMoves(pos Position) (moves []Move) {
+func QueenMoves(pos Position) []Move {
+	moves := make([]Move, 0, 2*28)
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
 	for queens := pos.b[pos.ToMove][Queen]; queens != 0; queens = ResetLS1B(queens) {
 		f, from := LS1B(queens), LS1BIndex(queens)
@@ -440,11 +445,12 @@ func QueenMoves(pos Position) (moves []Move) {
 			moves = append(moves, m)
 		}
 	}
-	return
+	return moves
 }
 
 // KingMoves returns a slice of all pseudo-legal Moves that the king can make in the current Position.
-func KingMoves(pos Position) (moves []Move) {
+func KingMoves(pos Position) []Move {
+	moves := make([]Move, 0, 8)
 	from := LS1BIndex(pos.b[pos.ToMove][King])
 	for dst := kingAttacks[from] &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 		t, to := LS1B(dst), LS1BIndex(dst)
@@ -469,7 +475,7 @@ func KingMoves(pos Position) (moves []Move) {
 	if canKSCastle(pos) {
 		moves = append(moves, Move{From: from, To: pos.KingSquare[pos.ToMove] + 2, Piece: King})
 	}
-	return
+	return moves
 }
 
 // canQSCastle returns whether castling queenside is pseudo-legal in the current Position.
