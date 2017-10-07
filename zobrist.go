@@ -55,10 +55,10 @@ func (pos Position) Zobrist() Zobrist {
 			z.xor(ksCastleZobrist[c])
 		}
 	}
-	if sp := eligibleEPCapturers(pos); sp.a != 0 {
-		z.xor(canEPCaptureZobrist[sp.a.File()])
-		if sp.b != 0 {
-			z.xor(canEPCaptureZobrist[sp.b.File()])
+	if a, b := eligibleEPCapturers(pos); a != 0 {
+		z.xor(canEPCaptureZobrist[a.File()])
+		if b != 0 {
+			z.xor(canEPCaptureZobrist[b.File()])
 		}
 	}
 	if pos.ToMove == Black {
