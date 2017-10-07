@@ -1,9 +1,5 @@
 package main
 
-import (
-	"log"
-)
-
 // A Move contains the information needed to transition from one Position to another.
 // Behavior is undefined when the Move is not legal in the given Position.
 type Move struct {
@@ -268,13 +264,7 @@ func PawnMoves(pos Position) []Move {
 			}
 			for dst := whitePawnAttacks(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
 				to := LS1BIndex(dst)
-				captureColor, capturePiece := pos.PieceOn(to)
-				if capturePiece == None {
-					log.Fatalf("PawnMoves (White): attempted capture on empty Square %v", to)
-				}
-				if captureColor != pos.Opp() {
-					log.Fatalf("PawnMoves (White): attempted capture of %v %v on %v", captureColor, capturePiece, to)
-				}
+				_, capturePiece := pos.PieceOn(to)
 				m := Move{From: from, To: to, Piece: Pawn, CapturePiece: capturePiece, CaptureSquare: to}
 				if to.Rank() == 7 {
 					m.PromotePiece = Queen
@@ -305,13 +295,7 @@ func PawnMoves(pos Position) []Move {
 			}
 			for dst := blackPawnAttacks(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
 				to := LS1BIndex(dst)
-				captureColor, capturePiece := pos.PieceOn(to)
-				if capturePiece == None {
-					log.Fatalf("PawnMoves (Black): attempted capture on empty Square %v", to)
-				}
-				if captureColor != pos.Opp() {
-					log.Fatalf("PawnMoves (Black): attempted capture of %v %v on %v", captureColor, capturePiece, to)
-				}
+				_, capturePiece := pos.PieceOn(to)
 				m := Move{From: from, To: to, Piece: Pawn, CapturePiece: capturePiece, CaptureSquare: to}
 				if to.Rank() == 0 {
 					m.PromotePiece = Queen
@@ -354,13 +338,7 @@ func KnightMoves(pos Position) []Move {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Knight}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece := pos.PieceOn(to)
-				if capturePiece == None {
-					log.Fatalf("KnightMoves: attempted capture on empty Square %v", to)
-				}
-				if captureColor != pos.Opp() {
-					log.Fatalf("KnightMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
-				}
+				_, capturePiece := pos.PieceOn(to)
 				m.CapturePiece = capturePiece
 				m.CaptureSquare = to
 			}
@@ -380,13 +358,7 @@ func BishopMoves(pos Position) []Move {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Bishop}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece := pos.PieceOn(to)
-				if capturePiece == None {
-					log.Fatalf("BishopMoves: attempted capture on empty Square %v", to)
-				}
-				if captureColor != pos.Opp() {
-					log.Fatalf("BishopMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
-				}
+				_, capturePiece := pos.PieceOn(to)
 				m.CapturePiece = capturePiece
 				m.CaptureSquare = to
 			}
@@ -406,13 +378,7 @@ func RookMoves(pos Position) []Move {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Rook}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece := pos.PieceOn(to)
-				if capturePiece == None {
-					log.Fatalf("RookMoves: attempted capture on empty Square %v", to)
-				}
-				if captureColor != pos.Opp() {
-					log.Fatalf("RookMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
-				}
+				_, capturePiece := pos.PieceOn(to)
 				m.CapturePiece = capturePiece
 				m.CaptureSquare = to
 			}
@@ -432,13 +398,7 @@ func QueenMoves(pos Position) []Move {
 			t, to := LS1B(dst), LS1BIndex(dst)
 			m := Move{From: from, To: to, Piece: Queen}
 			if t&pos.b[pos.Opp()][All] != 0 {
-				captureColor, capturePiece := pos.PieceOn(to)
-				if capturePiece == None {
-					log.Fatalf("QueenMoves: attempted capture on empty Square %v", to)
-				}
-				if captureColor != pos.Opp() {
-					log.Fatalf("QueenMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
-				}
+				_, capturePiece := pos.PieceOn(to)
 				m.CapturePiece = capturePiece
 				m.CaptureSquare = to
 			}
@@ -456,19 +416,12 @@ func KingMoves(pos Position) []Move {
 		t, to := LS1B(dst), LS1BIndex(dst)
 		m := Move{From: from, To: to, Piece: King}
 		if t&pos.b[pos.Opp()][All] != 0 {
-			captureColor, capturePiece := pos.PieceOn(to)
-			if capturePiece == None {
-				log.Fatalf("KingMoves: attempted capture on empty Square %v", to)
-			}
-			if captureColor != pos.Opp() {
-				log.Fatalf("KingMoves: attempted capture of %v %v on %v", captureColor, capturePiece, to)
-			}
+			_, capturePiece := pos.PieceOn(to)
 			m.CapturePiece = capturePiece
 			m.CaptureSquare = to
 		}
 		moves = append(moves, m)
 	}
-
 	if canQSCastle(pos) {
 		moves = append(moves, Move{From: from, To: pos.KingSquare[pos.ToMove] - 2, Piece: King})
 	}
