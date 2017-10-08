@@ -109,3 +109,9 @@ func TestIsTerminal(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSearchPosition(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = SearchPosition(InitialPosition, 4)
+	}
+}
