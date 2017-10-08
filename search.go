@@ -16,7 +16,9 @@ func SearchPosition(pos Position, depth int) (int, Move) {
 type SearchFunc func(Position, Move, int, int, int, bool, SearchFunc) (int, Move)
 
 func negamax(pos Position, recommended Move, alpha int, beta int, depth int, allowCutoff bool, search SearchFunc) (bestScore int, bestMove Move) {
-	if IsTerminal(pos) { // checkmate or stalemate
+	moves := Candidates(pos) // pseudo-legal
+
+	if !anyLegal(pos, moves) { // checkmate or stalemate
 		if IsCheck(pos) {
 			bestScore = -evalInf
 		}
@@ -27,7 +29,6 @@ func negamax(pos Position, recommended Move, alpha int, beta int, depth int, all
 		return
 	}
 
-	moves := Candidates(pos) // pseudo-legal
 	// Initialize bestMove with a legal Move if no recommended Move is provided
 	if recommended != (Move{}) {
 		moves = reorder(moves, recommended)
@@ -78,13 +79,16 @@ func IsLegal(pos Position) bool {
 
 // IsTerminal returns whether or not a Position is checkmate or stalemate.
 // A position is checkmate or stalemate if the side to move has no legal moves.
-func IsTerminal(pos Position) bool {
-	for _, m := range Candidates(pos) {
+func IsTerminal(pos Position) bool { return !anyLegal(pos, Candidates(pos)) }
+
+// anyLegal returns whether any of given Moves are legal in the given Position.
+func anyLegal(pos Position, moves []Move) bool {
+	for _, m := range moves {
 		if IsLegal(Make(pos, m)) {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 // reorder returns a reordered slice of Moves with the specified Move first.
