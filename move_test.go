@@ -449,6 +449,34 @@ func TestCanKSCastle(t *testing.T) {
 	}
 }
 
+func BenchmarkConstructMove(b *testing.B) {
+	m := Move{}
+	for i := 0; i < b.N; i++ {
+		m.From = b7
+		m.To = a8
+		m.Piece = Pawn
+		m.CapturePiece = Rook
+		m.CaptureSquare = a8
+		m.PromotePiece = Queen
+	}
+}
+
+func BenchmarkReadMove(b *testing.B) {
+	m := Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}
+	var from, to, captureSquare Square
+	var piece, capturePiece, promotePiece Piece
+	for i := 0; i < b.N; i++ {
+		from = m.From
+		to = m.To
+		piece = m.Piece
+		capturePiece = m.CapturePiece
+		captureSquare = m.CaptureSquare
+		promotePiece = m.PromotePiece
+	}
+	_, _, _ = from, to, captureSquare
+	_, _, _ = piece, capturePiece, promotePiece
+}
+
 func BenchmarkMake(b *testing.B) {
 	pos, err := ParseFEN("r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1")
 	if err != nil {
