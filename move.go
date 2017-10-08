@@ -1,10 +1,9 @@
 package main
 
 // A Move contains the information needed to transition from one Position to another.
-// Behavior is undefined when the Move is not legal in the given Position.
 type Move struct {
 	From          Square
-	To            Square
+	To            Square // invariant: not equal to From
 	Piece         Piece  // the moving Piece; invariant: not None
 	CapturePiece  Piece  // the Piece being captured, or else None
 	CaptureSquare Square // differs from To in the case of en passant captures
@@ -29,6 +28,7 @@ func (m Move) IsQSCastle() bool { return m.Piece == King && m.From-m.To == 2 }
 func (m Move) IsKSCastle() bool { return m.Piece == King && m.To-m.From == 2 }
 
 // Make applies a Move to a Position and returns the resulting Position.
+// Behavior is undefined when the Move is illegal in the Position.
 func Make(pos Position, m Move) Position {
 	// Remove en passant capturing rights from the Zobrist bitstring.
 	// In the event of an en passant capture, this must be done before the pawn bitboard is changed.
