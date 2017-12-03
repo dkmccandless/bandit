@@ -42,7 +42,6 @@ func negamax(pos Position, recommended Move, alpha int, beta int, depth int, all
 			}
 		}
 	}
-	bestScore = alpha
 
 	for _, m := range moves {
 		newpos := Make(pos, m)
@@ -53,17 +52,14 @@ func negamax(pos Position, recommended Move, alpha int, beta int, depth int, all
 		score, _ := search(newpos, Move{}, -beta, -alpha, depth-1, allowCutoff, search)
 		score *= -1
 
-		if score > bestScore {
-			bestScore, bestMove = score, m
-		}
 		if score > alpha {
-			alpha = score
+			alpha, bestMove = score, m
 		}
 		if alpha > beta && allowCutoff {
 			break
 		}
 	}
-	return
+	return alpha, bestMove
 }
 
 // IsCheck returns whether the king of the side to move is in check.
