@@ -565,37 +565,43 @@ func eligibleEPCapturers(pos Position) (Square, Square) {
 // algebraic returns the description of a Move in algebraic notation.
 func algebraic(pos Position, m Move) string {
 	var s string
-	switch m.Piece {
-	case Pawn:
-		if m.IsCapture() {
-			s = fileLetters[m.From.File()]
-		}
+	switch {
+	case m.IsQSCastle():
+		s = "O-O-O"
+	case m.IsKSCastle():
+		s = "O-O"
 	default:
-		s = pieceLetter[m.Piece]
-		var can Board
-		for _, mm := range PieceMoves[m.Piece](pos) {
-			if mm.To == m.To {
-				can ^= mm.From.Board()
+		if m.Piece == Pawn {
+			if m.IsCapture() {
+				s = fileLetters[m.From.File()]
+			}
+		} else {
+			s = pieceLetter[m.Piece]
+			var can Board
+			for _, mm := range PieceMoves[m.Piece](pos) {
+				if mm.To == m.To {
+					can ^= mm.From.Board()
+				}
+			}
+			switch {
+			case PopCount(can) == 1:
+				// don't need to specify
+			case PopCount(can&Files[m.From.File()]) == 1:
+				s += fileLetters[m.From.File()]
+			case PopCount(can&Ranks[m.From.Rank()]) == 1:
+				s += rankNumbers[m.From.Rank()]
+			default:
+				s += fileLetters[m.From.File()]
+				s += rankNumbers[m.From.Rank()]
 			}
 		}
-		switch {
-		case PopCount(can) == 1:
-			// don't need to specify
-		case PopCount(can&Files[m.From.File()]) == 1:
-			s += fileLetters[m.From.File()]
-		case PopCount(can&Ranks[m.From.Rank()]) == 1:
-			s += rankNumbers[m.From.Rank()]
-		default:
-			s += fileLetters[m.From.File()]
-			s += rankNumbers[m.From.Rank()]
+		if m.IsCapture() {
+			s += "x"
 		}
-	}
-	if m.IsCapture() {
-		s += "x"
-	}
-	s += m.To.String()
-	if m.IsPromotion() {
-		s += pieceLetter[m.PromotePiece]
+		s += m.To.String()
+		if m.IsPromotion() {
+			s += pieceLetter[m.PromotePiece]
+		}
 	}
 	if newpos := Make(pos, m); IsCheck(newpos) {
 		if IsTerminal(newpos) {
