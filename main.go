@@ -36,7 +36,7 @@ func main() {
 		} else {
 			fmt.Printf("\n%v...", pos.FullMove)
 		}
-		fmt.Printf("%v %.2f %v", algebraic(pos, move), float64(score)/100, time.Since(moveTime))
+		fmt.Printf("%v %.2f %v\n", algebraic(pos, move), float64(score)/100, time.Since(moveTime))
 		movesText += algebraic(pos, move) + " "
 
 		pos = Make(pos, move)
@@ -44,7 +44,7 @@ func main() {
 			panic(fmt.Sprintf("pos.z is %x, want %x", pos.z, pos.Zobrist()))
 		}
 
-		fmt.Print(pos.Display())
+		fmt.Print(pos.String())
 
 		// Check for threefold repetition
 		posZobrists[pos.z]++
@@ -54,6 +54,5 @@ func main() {
 		}
 	}
 
-	fmt.Printf("\n%v", movesText)
-	fmt.Println(time.Since(tt))
+	fmt.Printf("\n%v %v\n", movesText, time.Since(tt))
 }

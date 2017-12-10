@@ -276,8 +276,8 @@ func pieceChar(c Color, p Piece) string {
 	return s
 }
 
-func (pos Position) Display() string {
-	s := "\n"
+func (pos Position) String() string {
+	var s string
 	for r := 7; r >= 0; r-- {
 		for f := 0; f < 8; f++ {
 			if c, p := pos.PieceOn(Square(8*r + f)); p != None {
