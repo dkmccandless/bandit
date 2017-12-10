@@ -62,9 +62,16 @@ func negamax(pos Position, recommended Move, alpha int, beta int, depth int, all
 	return alpha, bestMove
 }
 
-// IsCheck returns whether the king of the side to move is in check.
-func IsCheck(pos Position) bool {
-	return IsAttacked(pos, pos.KingSquare[pos.ToMove], pos.Opp())
+// IsPseudoLegal returns whether a Move is pseudo-legal in a Position.
+// A move is pseudo-legal if the square to be moved from contains the specified piece
+// and the piece is capable of moving to the target square if doing so would not put the king in check.
+func IsPseudoLegal(pos Position, move Move) bool {
+	for _, m := range PieceMoves[move.Piece](pos) {
+		if m == move {
+			return true
+		}
+	}
+	return false
 }
 
 // IsLegal returns whether a Position results from a legal move.
@@ -73,11 +80,16 @@ func IsLegal(pos Position) bool {
 	return !IsAttacked(pos, pos.KingSquare[pos.Opp()], pos.ToMove)
 }
 
+// IsCheck returns whether the king of the side to move is in check.
+func IsCheck(pos Position) bool {
+	return IsAttacked(pos, pos.KingSquare[pos.ToMove], pos.Opp())
+}
+
 // IsTerminal returns whether or not a Position is checkmate or stalemate.
 // A position is checkmate or stalemate if the side to move has no legal moves.
 func IsTerminal(pos Position) bool { return !anyLegal(pos, Candidates(pos)) }
 
-// anyLegal returns whether any of given Moves are legal in the given Position.
+// anyLegal returns whether any of the given Moves are legal in the given Position.
 func anyLegal(pos Position, moves []Move) bool {
 	for _, m := range moves {
 		if IsLegal(Make(pos, m)) {
