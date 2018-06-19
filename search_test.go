@@ -145,3 +145,36 @@ func BenchmarkSearchPosition(b *testing.B) {
 		_, _ = SearchPosition(InitialPosition, 4)
 	}
 }
+
+var windowTests = []struct {
+	w, neg          Window
+	n               int
+	c               Window
+	constrained, ok bool
+}{
+	{Window{-50, -30}, Window{30, 50}, -100, Window{-50, -30}, false, true},
+	{Window{-50, -30}, Window{30, 50}, -35, Window{-35, -30}, true, true},
+	{Window{-50, -30}, Window{30, 50}, 0, Window{0, -30}, true, false},
+	{Window{-20, 10}, Window{-10, 20}, -30, Window{-20, 10}, false, true},
+	{Window{-20, 10}, Window{-10, 20}, 0, Window{0, 10}, true, true},
+	{Window{-20, 10}, Window{-10, 20}, 30, Window{30, 10}, true, false},
+	{Window{20, 100}, Window{-100, -20}, 0, Window{20, 100}, false, true},
+	{Window{20, 100}, Window{-100, -20}, 60, Window{60, 100}, true, true},
+	{Window{20, 100}, Window{-100, -20}, 120, Window{120, 100}, true, false},
+}
+
+func TestNeg(t *testing.T) {
+	for _, test := range windowTests {
+		if got := test.w.Neg(); got != test.neg {
+			t.Errorf("TestNeg(%v): got %v, want %v", test.w, got, test.neg)
+		}
+	}
+}
+
+func TestConstrain(t *testing.T) {
+	for _, test := range windowTests {
+		if gotc, gotconstrained, gotok := test.w.Constrain(test.n); gotc != test.c || gotconstrained != test.constrained || gotok != test.ok {
+			t.Errorf("TestConstrain(%v, %v): got %v, %v, %v; want %v, %v, %v", test.w, test.n, gotc, gotconstrained, gotok, test.c, test.constrained, test.ok)
+		}
+	}
+}

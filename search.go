@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 const (
 	evalInf = 50000
 )
@@ -115,3 +117,26 @@ func reorder(moves []Move, m Move) []Move {
 	}
 	return moves
 }
+
+// A Window represents the bounds of a position's evaluation.
+type Window struct{ alpha, beta int }
+
+// NewWindow returns a Window with the given bounds. It panics if alpha > beta.
+func NewWindow(alpha, beta int) Window {
+	if alpha > beta {
+		panic(fmt.Sprintf("invalid window bounds %v, %v", alpha, beta))
+	}
+	return Window{alpha, beta}
+}
+
+// Constrain updates the lower bound of w, if applicable, and returns the updated window,
+// whether the lower bound was changed, and whether w remains a valid Window.
+func (w Window) Constrain(n int) (c Window, constrained bool, ok bool) {
+	if n <= w.alpha {
+		return w, false, true
+	}
+	return Window{n, w.beta}, true, n <= w.beta
+}
+
+// Neg returns the additive inverse of w.
+func (w Window) Neg() Window { return Window{-w.beta, -w.alpha} }
