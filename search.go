@@ -10,14 +10,14 @@ func SearchPosition(pos Position, depth int) (int, Move) {
 	var score int
 	var recommended Move
 	for d := 1; d <= depth; d++ {
-		score, recommended = negamax(pos, recommended, -evalInf, evalInf, d, true, negamax)
+		score, recommended = negamax(pos, recommended, NewWindow(-evalInf, evalInf), d, true, negamax)
 	}
 	return score, recommended
 }
 
-type SearchFunc func(Position, Move, int, int, int, bool, SearchFunc) (int, Move)
+type SearchFunc func(Position, Move, Window, int, bool, SearchFunc) (int, Move)
 
-func negamax(pos Position, recommended Move, alpha int, beta int, depth int, allowCutoff bool, search SearchFunc) (bestScore int, bestMove Move) {
+func negamax(pos Position, recommended Move, w Window, depth int, allowCutoff bool, search SearchFunc) (bestScore int, bestMove Move) {
 	moves := Candidates(pos) // pseudo-legal
 
 	if !anyLegal(pos, moves) { // checkmate or stalemate
@@ -51,17 +51,19 @@ func negamax(pos Position, recommended Move, alpha int, beta int, depth int, all
 			continue
 		}
 
-		score, _ := search(newpos, Move{}, -beta, -alpha, depth-1, allowCutoff, search)
+		score, _ := search(newpos, Move{}, w.Neg(), depth-1, allowCutoff, search)
 		score *= -1
 
-		if score > alpha {
-			alpha, bestMove = score, m
+		var constrained, ok bool
+		w, constrained, ok = w.Constrain(score)
+		if constrained {
+			bestMove = m
 		}
-		if alpha > beta && allowCutoff {
+		if !ok && allowCutoff {
 			break
 		}
 	}
-	return alpha, bestMove
+	return w.alpha, bestMove
 }
 
 // IsPseudoLegal returns whether a Move is pseudo-legal in a Position.
