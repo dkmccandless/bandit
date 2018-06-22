@@ -135,7 +135,7 @@ func NewWindow(alpha, beta int) Window {
 }
 
 // Constrain updates the lower bound of w, if applicable, and returns the updated window,
-// whether the lower bound was changed, and whether w remains a valid Window.
+// whether the lower bound was changed, and whether the returned Window remains valid.
 func (w Window) Constrain(n int) (c Window, constrained bool, ok bool) {
 	if n <= w.alpha {
 		return w, false, true
