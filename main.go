@@ -28,7 +28,8 @@ func main() {
 	for !IsTerminal(pos) {
 		moveTime := time.Now()
 
-		score, move := SearchPosition(pos, *depth)
+		score, results := SearchPosition(pos, *depth)
+		move := results[0].move
 
 		if pos.ToMove == White {
 			fmt.Printf("\n%v.", pos.FullMove)

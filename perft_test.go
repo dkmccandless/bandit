@@ -151,12 +151,12 @@ func TestPerft(t *testing.T) {
 
 		wantDepth := len(test.want)
 		got := make([]int, wantDepth+1)
-		perftSearch := func(pos Position, _ Move, _ Window, depth int, allowCutoff bool, search SearchFunc) (int, Move) {
+		perftSearch := func(pos Position, _ Results, _ Window, depth int, allowCutoff bool, search SearchFunc) (int, Results) {
 			got[wantDepth-depth]++
-			return negamax(pos, Move{}, NewWindow(0, 0), depth, false, search)
+			return negamax(pos, Results{}, NewWindow(0, 0), depth, false, search)
 		}
 
-		_, _ = perftSearch(pos, Move{}, NewWindow(0, 0), wantDepth, false, perftSearch)
+		_, _ = perftSearch(pos, Results{}, NewWindow(0, 0), wantDepth, false, perftSearch)
 		got = got[1:]
 		for i := range test.want {
 			if got[i] != test.want[i] {
