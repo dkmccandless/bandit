@@ -123,23 +123,6 @@ func (r Results) Less(i, j int) bool {
 	return r[i].depth > r[j].depth || r[i].depth == r[j].depth && r[i].score > r[j].score
 }
 
-// reorder returns a reordered slice of Moves with the specified Move first.
-// The slice is not modified if it does not contain the specified Move.
-func reorder(moves []Move, m Move) []Move {
-	for _, n := range moves {
-		if n == m {
-			s := []Move{m}
-			for _, n := range moves {
-				if n != m {
-					s = append(s, n)
-				}
-			}
-			return s
-		}
-	}
-	return moves
-}
-
 // A Window represents the bounds of a position's evaluation.
 type Window struct{ alpha, beta int }
 
