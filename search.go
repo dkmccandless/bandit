@@ -111,6 +111,10 @@ type Result struct {
 	depth int
 }
 
+func (r Result) String() string {
+	return fmt.Sprintf("%v %v (%v)", r.move.String(), float64(r.score)/100, r.depth)
+}
+
 // A Results contains the results of a search. Results satisfies sort.Interface.
 // A Results should be sorted by the function generating it before it is returned.
 type Results []Result
@@ -121,6 +125,14 @@ func (r Results) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 // Less sorts two Result elements first by depth and then by score.
 func (r Results) Less(i, j int) bool {
 	return r[i].depth > r[j].depth || r[i].depth == r[j].depth && r[i].score > r[j].score
+}
+
+func (r Results) String() string {
+	var s string
+	for _, result := range r {
+		s += fmt.Sprintf("%v\n", result.String())
+	}
+	return s
 }
 
 // A Window represents the bounds of a position's evaluation.
