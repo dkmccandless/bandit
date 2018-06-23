@@ -562,7 +562,32 @@ func eligibleEPCapturers(pos Position) (Square, Square) {
 	return a, b
 }
 
-// algebraic returns the description of a Move in algebraic notation.
+// String returns the string description of a Move in long algebraic notation without check.
+func (m Move) String() string {
+	if m.IsQSCastle() {
+		return "O-O-O"
+	}
+	if m.IsKSCastle() {
+		return "O-O"
+	}
+	var s string
+	if m.Piece != Pawn {
+		s = pieceLetter[m.Piece]
+	}
+	s += m.From.String()
+	if m.IsCapture() {
+		s += "x"
+	} else {
+		s += "-"
+	}
+	s += m.To.String()
+	if m.IsPromotion() {
+		s += pieceLetter[m.PromotePiece]
+	}
+	return s
+}
+
+// algebraic returns the description of a Move in standard algebraic notation.
 func algebraic(pos Position, m Move) string {
 	var s string
 	switch {
