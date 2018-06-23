@@ -63,7 +63,7 @@ func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff
 		}
 	}
 
-	sort.Sort(results)
+	sort.Sort(sort.Reverse(results)) // highest score first
 	return w.alpha, results
 }
 
@@ -124,7 +124,7 @@ func (r Results) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 
 // Less sorts two Result elements first by depth and then by score.
 func (r Results) Less(i, j int) bool {
-	return r[i].depth > r[j].depth || r[i].depth == r[j].depth && r[i].score > r[j].score
+	return r[i].depth < r[j].depth || r[i].depth == r[j].depth && r[i].score < r[j].score
 }
 
 func (r Results) String() string {
