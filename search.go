@@ -48,10 +48,11 @@ func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff
 			continue
 		}
 
-		score, _ := search(newpos, Results{}, w.Neg(), depth-1, allowCutoff, search)
+		score, cont := search(newpos, Results{}, w.Neg(), depth-1, allowCutoff, search)
 		score *= -1
 
-		results = append(results, Result{move: r.move, score: score, depth: depth - 1})
+		// Store the score in results relative to White
+		results = append(results, Result{move: r.move, score: score * evalMult(pos.ToMove), depth: depth - 1, cont: cont})
 
 		var constrained, ok bool
 		w, constrained, ok = w.Constrain(score)
@@ -63,7 +64,12 @@ func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff
 		}
 	}
 
-	sort.Sort(sort.Reverse(results)) // highest score first
+	if pos.ToMove == White {
+		// highest score first
+		sort.Sort(sort.Reverse(results))
+	} else {
+		sort.Sort(results)
+	}
 	return w.alpha, results
 }
 
@@ -104,15 +110,23 @@ func anyLegal(pos Position, moves []Move) bool {
 	return false
 }
 
-// A Result holds the score of a searched Move and the search depth.
+// A Result holds the score of a searched Move, the search depth, and the continuation Results of the search.
 type Result struct {
 	move  Move
 	score int
 	depth int
+	cont  Results
 }
 
 func (r Result) String() string {
-	return fmt.Sprintf("%v %v (%v)", r.move.String(), float64(r.score)/100, r.depth)
+	return fmt.Sprintf("%v (%v) %v", float64(r.score)/100, r.depth, r.PV())
+}
+
+func (r Result) PV() string {
+	if r.depth == 0 || len(r.cont) == 0 {
+		return r.move.String()
+	}
+	return r.move.String() + " " + r.cont[0].PV()
 }
 
 // A Results contains the results of a search. Results satisfies sort.Interface.

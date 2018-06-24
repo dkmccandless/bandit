@@ -37,7 +37,7 @@ func main() {
 		} else {
 			fmt.Printf("\n%v...", pos.FullMove)
 		}
-		fmt.Printf("%v %.2f %v\n", algebraic(pos, move), float64(score)/100, time.Since(moveTime))
+		fmt.Printf("%v %.2f %v\n", algebraic(pos, move), float64(score*evalMult(pos.ToMove))/100, time.Since(moveTime))
 		movesText += algebraic(pos, move) + " "
 
 		pos = Make(pos, move)
