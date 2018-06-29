@@ -9,17 +9,22 @@ const (
 	evalInf = 50000
 )
 
-func SearchPosition(pos Position, depth int) (int, Results) {
-	var score int
-	var results Results
+// SearchPosition searches a Position to the specified depth via iterative deepening
+// and returns the evaluation score relative to the side to move and the search results.
+func SearchPosition(pos Position, depth int) (score int, results Results) {
 	for d := 1; d <= depth; d++ {
 		score, results = negamax(pos, results, NewWindow(-evalInf, evalInf), d, true, negamax)
 	}
-	return score, results
+	return
 }
 
 type SearchFunc func(Position, Results, Window, int, bool, SearchFunc) (int, Results)
 
+// negamax recursively searches a Position to the specified depth and returns the evaluation score
+// relative to the side to move and the search results. It employs alpha-beta pruning outside of
+// the specified Window. If recommended is zero length, negamax will generate and search all
+// pseudo-legal moves; if recommended moves are provided, they must all be pseudo-legal, and
+// only they will be searched.
 func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff bool, search SearchFunc) (bestScore int, results Results) {
 	if len(recommended) == 0 {
 		moves := Candidates(pos) // pseudo-legal
@@ -110,7 +115,8 @@ func anyLegal(pos Position, moves []Move) bool {
 	return false
 }
 
-// A Result holds the score of a searched Move, the search depth, and the continuation Results of the search.
+// A Result holds the score of a searched Move (relative to White),
+// the search depth, and the continuation Results of the search.
 type Result struct {
 	move  Move
 	score int
@@ -118,10 +124,12 @@ type Result struct {
 	cont  Results
 }
 
+// String returns a string representation of r, including its principal variation.
 func (r Result) String() string {
 	return fmt.Sprintf("%v (%v) %v", float64(r.score)/100, r.depth, r.PV())
 }
 
+// PV returns a string representation of r's principal variation.
 func (r Result) PV() string {
 	if r.depth == 0 || len(r.cont) == 0 {
 		return r.move.String()
@@ -136,11 +144,13 @@ type Results []Result
 func (r Results) Len() int      { return len(r) }
 func (r Results) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 
-// Less sorts two Result elements first by depth and then by score.
+// Less reports whether the Result with index i should sort before the Result with index j.
+// It sorts first by depth and then by score.
 func (r Results) Less(i, j int) bool {
 	return r[i].depth < r[j].depth || r[i].depth == r[j].depth && r[i].score < r[j].score
 }
 
+// String returns a string representation of all Result values in r.
 func (r Results) String() string {
 	var s string
 	for _, result := range r {
