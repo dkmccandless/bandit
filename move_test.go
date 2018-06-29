@@ -449,38 +449,50 @@ func TestCanKSCastle(t *testing.T) {
 	}
 }
 
+var algebraicTests = []struct {
+	fen  string
+	move Move
+	alg  string
+	long string
+}{
+	{InitialPositionFEN, Move{From: e2, To: e4, Piece: Pawn}, "e4", "e2-e4"},
+	{InitialPositionFEN, Move{From: g2, To: g3, Piece: Pawn}, "g3", "g2-g3"},
+	{InitialPositionFEN, Move{From: g1, To: f3, Piece: Knight}, "Nf3", "Ng1-f3"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: f2, Piece: King}, "Kf2", "Ke1-f2"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: g2, To: g4, Piece: Pawn}, "g4", "g2-g4"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: e5}, "dxe6", "d5xe6"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook, CaptureSquare: a8}, "Rxa8+", "Ra1xa8"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}, "b8Q+", "b7-b8Q"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}, "bxa8Q+", "b7xa8Q"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: c1, Piece: King}, "O-O-O", "O-O-O"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: g1, Piece: King}, "O-O+", "O-O"},
+	{"r4k2/1P6/3P2Q1/4p3/8/8/6P1/R3K2R w KQ - 0 1", Move{From: e1, To: g1, Piece: King}, "O-O#", "O-O"},
+	{"7k/8/8/8/8/8/8/R4RK1 w - - 0 1", Move{From: a1, To: d1, Piece: Rook}, "Rad1", "Ra1-d1"},
+	{"7k/R7/8/8/8/8/8/R5K1 w - - 0 1", Move{From: a7, To: a6, Piece: Rook}, "R7a6", "Ra7-a6"},
+	{"7k/R7/8/8/8/8/8/R5K1 w - - 0 1", Move{From: a7, To: a8, Piece: Rook}, "Ra8+", "Ra7-a8"},
+	{"8/B7/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "B7d4", "Ba7-d4"},
+	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a1, To: d4, Piece: Bishop}, "B1d4", "Ba1-d4"},
+	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: g7, To: d4, Piece: Bishop}, "Bgd4", "Bg7-d4"},
+	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "Ba7d4", "Ba7-d4"},
+}
+
+func TestMoveString(t *testing.T) {
+	// long algebraic notation without check
+	for _, test := range algebraicTests {
+		if got := test.move.String(); got != test.long {
+			t.Errorf("String(%v): got %v, want %v", test.move, got, test.long)
+		}
+	}
+}
+
 func TestAlgebraic(t *testing.T) {
-	for _, test := range []struct {
-		fen  string
-		move Move
-		want string
-	}{
-		{InitialPositionFEN, Move{From: e2, To: e4, Piece: Pawn}, "e4"},
-		{InitialPositionFEN, Move{From: g2, To: g3, Piece: Pawn}, "g3"},
-		{InitialPositionFEN, Move{From: g1, To: f3, Piece: Knight}, "Nf3"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: f2, Piece: King}, "Kf2"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: g2, To: g4, Piece: Pawn}, "g4"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: e5}, "dxe6"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook, CaptureSquare: a8}, "Rxa8+"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}, "b8Q+"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}, "bxa8Q+"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: c1, Piece: King}, "O-O-O"},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: g1, Piece: King}, "O-O+"},
-		{"r4k2/1P6/3P2Q1/4p3/8/8/6P1/R3K2R w KQ - 0 1", Move{From: e1, To: g1, Piece: King}, "O-O#"},
-		{"7k/8/8/8/8/8/8/R4RK1 w - - 0 1", Move{From: a1, To: d1, Piece: Rook}, "Rad1"},
-		{"7k/R7/8/8/8/8/8/R5K1 w - - 0 1", Move{From: a7, To: a6, Piece: Rook}, "R7a6"},
-		{"7k/R7/8/8/8/8/8/R5K1 w - - 0 1", Move{From: a7, To: a8, Piece: Rook}, "Ra8+"},
-		{"8/B7/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "B7d4"},
-		{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a1, To: d4, Piece: Bishop}, "B1d4"},
-		{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: g7, To: d4, Piece: Bishop}, "Bgd4"},
-		{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "Ba7d4"},
-	} {
+	for _, test := range algebraicTests {
 		pos, err := ParseFEN(test.fen)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := algebraic(pos, test.move); got != test.want {
-			t.Errorf("algebraic(%v, %+v): got %v, want %v", test.fen, test.move, got, test.want)
+		if got := algebraic(pos, test.move); got != test.alg {
+			t.Errorf("algebraic(%v, %+v): got %v, want %v", test.fen, test.move, got, test.alg)
 		}
 	}
 }
