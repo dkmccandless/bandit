@@ -141,8 +141,12 @@ func TestIsTerminal(t *testing.T) {
 }
 
 func BenchmarkSearchPosition(b *testing.B) {
+	pos, err := ParseFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+	if err != nil {
+		b.Fatal(err)
+	}
 	for i := 0; i < b.N; i++ {
-		_, _ = SearchPosition(InitialPosition, 4)
+		_, _ = SearchPosition(pos, 2)
 	}
 }
 
