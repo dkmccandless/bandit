@@ -9,9 +9,6 @@ import (
 // and counts all strictly legal moves possible at each depth. Positions and values are taken from http://www.rocechess.ch/perft.html.
 // The second position is originally by Peter McKenzie, and the rest are by Andrew Wagner (http://www.stmintz.com/ccc/index.php?id=357560).
 func TestPerft(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping perft test in short mode.")
-	}
 	for i, test := range []struct {
 		fen  string
 		want []int
@@ -150,6 +147,10 @@ func TestPerft(t *testing.T) {
 		}
 
 		wantDepth := len(test.want)
+		if testing.Short() {
+			wantDepth = 3
+		}
+
 		got := make([]int, wantDepth+1)
 		perftSearch := func(pos Position, _ Results, _ Window, depth int, allowCutoff bool, search SearchFunc) (int, Results) {
 			got[wantDepth-depth]++
@@ -158,7 +159,7 @@ func TestPerft(t *testing.T) {
 
 		_, _ = perftSearch(pos, Results{}, NewWindow(0, 0), wantDepth, false, perftSearch)
 		got = got[1:]
-		for i := range test.want {
+		for i := range got {
 			if got[i] != test.want[i] {
 				t.Errorf("TestPerft(%v): got %v, want %v", test.fen, got, test.want)
 				break
