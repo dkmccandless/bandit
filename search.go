@@ -13,19 +13,19 @@ const (
 // and returns the evaluation score relative to the side to move and the search results.
 func SearchPosition(pos Position, depth int) (score int, results Results) {
 	for d := 1; d <= depth; d++ {
-		score, results = negamax(pos, results, NewWindow(-evalInf, evalInf), d, true, negamax)
+		score, results = negamax(pos, results, NewWindow(-evalInf, evalInf), d, true, make([]int, d+1))
 	}
 	return
 }
-
-type SearchFunc func(Position, Results, Window, int, bool, SearchFunc) (int, Results)
 
 // negamax recursively searches a Position to the specified depth and returns the evaluation score
 // relative to the side to move and the search results. It employs alpha-beta pruning outside of
 // the specified Window. If recommended is zero length, negamax will generate and search all
 // pseudo-legal moves; if recommended moves are provided, they must all be pseudo-legal, and
 // only they will be searched.
-func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff bool, search SearchFunc) (bestScore int, results Results) {
+func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore int, results Results) {
+	counters[0]++
+
 	if len(recommended) == 0 {
 		moves := Candidates(pos) // pseudo-legal
 
@@ -53,7 +53,7 @@ func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff
 			continue
 		}
 
-		score, cont := search(newpos, Results{}, w.Neg(), depth-1, allowCutoff, search)
+		score, cont := negamax(newpos, Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
 		score *= -1
 
 		// Store the score in results relative to White
