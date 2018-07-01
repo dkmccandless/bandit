@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestIsPseudoLegal(t *testing.T) {
 	for _, test := range []struct {
@@ -145,8 +148,9 @@ func BenchmarkSearchPosition(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		_, _ = SearchPosition(pos, 2)
+		_, _ = SearchPosition(ctx, pos, 2)
 	}
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -79,7 +80,11 @@ type Player interface {
 type Computer struct{ depth int }
 
 func (c Computer) Play(pos Position) (int, Move) {
-	_, results := SearchPosition(pos, c.depth)
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	_, results := SearchPosition(ctx, pos, c.depth)
 	return results[0].score, results[0].move
 }
 

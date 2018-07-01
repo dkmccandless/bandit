@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sort"
 )
@@ -11,9 +12,12 @@ const (
 
 // SearchPosition searches a Position to the specified depth via iterative deepening
 // and returns the evaluation score relative to the side to move and the search results.
-func SearchPosition(pos Position, depth int) (score int, results Results) {
+func SearchPosition(ctx context.Context, pos Position, depth int) (score int, results Results) {
 	for d := 1; d <= depth; d++ {
-		score, results = negamax(pos, results, NewWindow(-evalInf, evalInf), d, true, make([]int, d+1))
+		if ctx.Err() != nil {
+			return
+		}
+		score, results = negamax(ctx, pos, results, NewWindow(-evalInf, evalInf), d, true, make([]int, d+1))
 	}
 	return
 }
@@ -23,7 +27,7 @@ func SearchPosition(pos Position, depth int) (score int, results Results) {
 // the specified Window. If recommended is zero length, negamax will generate and search all
 // pseudo-legal moves; if recommended moves are provided, they must all be pseudo-legal, and
 // only they will be searched.
-func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore int, results Results) {
+func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore int, results Results) {
 	counters[0]++
 
 	if len(recommended) == 0 {
@@ -53,11 +57,15 @@ func negamax(pos Position, recommended Results, w Window, depth int, allowCutoff
 			continue
 		}
 
-		score, cont := negamax(newpos, Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
+		score, cont := negamax(ctx, newpos, Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
 		score *= -1
 
 		// Store the score in results relative to White
 		results = append(results, Result{move: r.move, score: score * evalMult(pos.ToMove), depth: depth - 1, cont: cont})
+
+		if depth >= 3 && ctx.Err() != nil {
+			break
+		}
 
 		var constrained, ok bool
 		w, constrained, ok = w.Constrain(score)
