@@ -587,6 +587,17 @@ func LongAlgebraic(m Move) string {
 	return s
 }
 
+// ParseUserMove parses text as the concatenation of two Squares, e.g. "e2e4",
+// and returns the corresponding Squares.
+func ParseUserMove(s string) (from, to Square, err error) {
+	from, err = ParseSquare(s[:2])
+	if err != nil {
+		return
+	}
+	to, err = ParseSquare(s[2:])
+	return
+}
+
 // Algebraic returns the description of a Move in standard algebraic notation.
 func Algebraic(pos Position, m Move) string {
 	var s string
