@@ -21,6 +21,8 @@ func main() {
 		panic(err)
 	}
 
+	players := []Player{Computer{*depth}, Computer{*depth}}
+
 	startTime := time.Now()
 	var movesText string
 	posZobrists := make(map[Zobrist]int)
@@ -28,8 +30,7 @@ func main() {
 	for !IsTerminal(pos) {
 		moveTime := time.Now()
 
-		_, results := SearchPosition(pos, *depth)
-		score, move := results[0].score, results[0].move
+		score, move := players[pos.ToMove].Play(pos)
 
 		alg := Algebraic(pos, move)
 		movenum := fmt.Sprintf("%v.", pos.FullMove)
@@ -55,4 +56,15 @@ func main() {
 	}
 
 	fmt.Println(movesText, time.Since(startTime).Truncate(time.Millisecond))
+}
+
+type Player interface {
+	Play(Position) (int, Move)
+}
+
+type Computer struct{ depth int }
+
+func (c Computer) Play(pos Position) (int, Move) {
+	_, results := SearchPosition(pos, c.depth)
+	return results[0].score, results[0].move
 }
