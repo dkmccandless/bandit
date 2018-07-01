@@ -31,7 +31,7 @@ func main() {
 		_, results := SearchPosition(pos, *depth)
 		score, move := results[0].score, results[0].move
 
-		alg := algebraic(pos, move)
+		alg := Algebraic(pos, move)
 		movenum := fmt.Sprintf("%v.", pos.FullMove)
 		switch pos.ToMove {
 		case White:

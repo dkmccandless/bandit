@@ -476,11 +476,10 @@ var algebraicTests = []struct {
 	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "Ba7d4", "Ba7-d4"},
 }
 
-func TestMoveString(t *testing.T) {
-	// long algebraic notation without check
+func TestLongAlgebraic(t *testing.T) {
 	for _, test := range algebraicTests {
-		if got := test.move.String(); got != test.long {
-			t.Errorf("String(%v): got %v, want %v", test.move, got, test.long)
+		if got := LongAlgebraic(test.move); got != test.long {
+			t.Errorf("LongAlgebraic(%v): got %v, want %v", test.move, got, test.long)
 		}
 	}
 }
@@ -491,7 +490,7 @@ func TestAlgebraic(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := algebraic(pos, test.move); got != test.alg {
+		if got := Algebraic(pos, test.move); got != test.alg {
 			t.Errorf("algebraic(%v, %+v): got %v, want %v", test.fen, test.move, got, test.alg)
 		}
 	}

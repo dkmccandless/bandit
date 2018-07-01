@@ -132,9 +132,9 @@ func (r Result) String() string {
 // PV returns a string representation of r's principal variation.
 func (r Result) PV() string {
 	if r.depth == 0 || len(r.cont) == 0 {
-		return r.move.String()
+		return LongAlgebraic(r.move)
 	}
-	return r.move.String() + " " + r.cont[0].PV()
+	return LongAlgebraic(r.move) + " " + r.cont[0].PV()
 }
 
 // A Results contains the results of a search. Results satisfies sort.Interface.

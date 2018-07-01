@@ -562,8 +562,8 @@ func eligibleEPCapturers(pos Position) (Square, Square) {
 	return a, b
 }
 
-// String returns the string description of a Move in long algebraic notation without check.
-func (m Move) String() string {
+// LongAlgebraic returns the description of a Move in long algebraic notation without check.
+func LongAlgebraic(m Move) string {
 	if m.IsQSCastle() {
 		return "O-O-O"
 	}
@@ -587,8 +587,8 @@ func (m Move) String() string {
 	return s
 }
 
-// algebraic returns the description of a Move in standard algebraic notation.
-func algebraic(pos Position, m Move) string {
+// Algebraic returns the description of a Move in standard algebraic notation.
+func Algebraic(pos Position, m Move) string {
 	var s string
 	switch {
 	case m.IsQSCastle():
