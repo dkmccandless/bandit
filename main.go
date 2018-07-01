@@ -21,31 +21,30 @@ func main() {
 		panic(err)
 	}
 
-	tt := time.Now()
+	startTime := time.Now()
 	var movesText string
 	posZobrists := make(map[Zobrist]int)
 
 	for !IsTerminal(pos) {
 		moveTime := time.Now()
 
-		score, results := SearchPosition(pos, *depth)
-		move := results[0].move
+		_, results := SearchPosition(pos, *depth)
+		score, move := results[0].score, results[0].move
 
-		if pos.ToMove == White {
-			fmt.Printf("\n%v.", pos.FullMove)
-			movesText += fmt.Sprintf("%v.", pos.FullMove)
-		} else {
-			fmt.Printf("\n%v...", pos.FullMove)
+		alg := algebraic(pos, move)
+		movenum := fmt.Sprintf("%v.", pos.FullMove)
+		switch pos.ToMove {
+		case White:
+			movesText += movenum
+		case Black:
+			movenum += ".."
 		}
-		fmt.Printf("%v %.2f %v\n", algebraic(pos, move), float64(score*evalMult(pos.ToMove))/100, time.Since(moveTime))
-		movesText += algebraic(pos, move) + " "
+		movesText += alg + " "
 
 		pos = Make(pos, move)
-		if pos.z != pos.Zobrist() {
-			panic(fmt.Sprintf("pos.z is %x, want %x", pos.z, pos.Zobrist()))
-		}
 
-		fmt.Print(pos.String())
+		fmt.Printf("%v%v %.2f %v\n", movenum, alg, float64(score)/100, time.Since(moveTime).Truncate(time.Millisecond))
+		fmt.Println(pos.String())
 
 		// Check for threefold repetition
 		posZobrists[pos.z]++
@@ -55,5 +54,5 @@ func main() {
 		}
 	}
 
-	fmt.Printf("\n%v %v\n", movesText, time.Since(tt))
+	fmt.Println(movesText, time.Since(startTime).Truncate(time.Millisecond))
 }
