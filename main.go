@@ -3,10 +3,15 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+)
+
+var (
+	ErrGo = errors.New("go")
 )
 
 func main() {
@@ -92,6 +97,7 @@ type Human struct{ s *bufio.Scanner }
 
 func (h Human) Play(pos Position) (int, Move) {
 	ch := make(chan Results)
+	// Wait for SearchPosition to return
 	defer func() { <-ch }()
 
 	ctx := context.Background()
@@ -101,10 +107,16 @@ func (h Human) Play(pos Position) (int, Move) {
 	go func() {
 		_, results := SearchPosition(ctx, pos, 100)
 		ch <- results
+		close(ch)
 	}()
 
 	for {
 		m, err := h.readMove(pos)
+		if err == ErrGo {
+			cancel()
+			results := <-ch
+			return results[0].score, results[0].move
+		}
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -120,6 +132,9 @@ func (h Human) readMove(pos Position) (m Move, err error) {
 	}
 	if h.s.Text() == "resign" {
 		return
+	}
+	if h.s.Text() == "go" {
+		return m, ErrGo
 	}
 	from, to, err := ParseUserMove(h.s.Text())
 	if err != nil {
