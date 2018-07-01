@@ -91,6 +91,18 @@ func (c Computer) Play(pos Position) (int, Move) {
 type Human struct{ s *bufio.Scanner }
 
 func (h Human) Play(pos Position) (int, Move) {
+	ch := make(chan Results)
+	defer func() { <-ch }()
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		_, results := SearchPosition(ctx, pos, 100)
+		ch <- results
+	}()
+
 	for {
 		m, err := h.readMove(pos)
 		if err != nil {
