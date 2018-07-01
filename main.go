@@ -34,6 +34,16 @@ func main() {
 		moveTime := time.Now()
 
 		score, move := players[pos.ToMove].Play(pos)
+		if move == (Move{}) {
+			// player resigns
+			switch pos.ToMove {
+			case White:
+				movesText += "0-1"
+			case Black:
+				movesText += "1-0"
+			}
+			break
+		}
 
 		alg := Algebraic(pos, move)
 		movenum := fmt.Sprintf("%v.", pos.FullMove)
@@ -62,6 +72,7 @@ func main() {
 }
 
 type Player interface {
+	// Returning the zero value Move{} indicates resignation.
 	Play(Position) (int, Move)
 }
 
@@ -75,32 +86,46 @@ func (c Computer) Play(pos Position) (int, Move) {
 type Human struct{ s *bufio.Scanner }
 
 func (h Human) Play(pos Position) (int, Move) {
+	for {
+		m, err := h.readMove(pos)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		return 0, m
+	}
+}
+
+func (h Human) readMove(pos Position) (m Move, err error) {
 	fmt.Printf("> ")
 	if ok := h.s.Scan(); !ok {
-		panic(h.s.Err())
+		return m, h.s.Err()
+	}
+	if h.s.Text() == "resign" {
+		return
 	}
 	from, to, err := ParseUserMove(h.s.Text())
 	if err != nil {
-		panic(err)
+		return m, err
 	}
 	c, p := pos.PieceOn(from)
 	if p == None {
-		panic(fmt.Sprintf("No piece on square %v", from))
+		return m, fmt.Errorf("No piece on square %v", from)
 	}
 	if c != pos.ToMove {
-		panic(fmt.Sprintf("%v piece on square %v", c, from))
+		return m, fmt.Errorf("%v piece on square %v", c, from)
 	}
 	cc, cp := pos.PieceOn(to)
 	if cp != None && cc == c {
-		panic(fmt.Sprintf("%v piece on square %v", cc, to))
+		return m, fmt.Errorf("%v piece on square %v", cc, to)
 	}
 	var cs Square
 	if cp != None {
 		cs = to
 	} // TODO: en passant, promotion
-	m := Move{From: from, To: to, Piece: p, CapturePiece: cp, CaptureSquare: cs}
+	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, CaptureSquare: cs}
 	if !IsPseudoLegal(pos, m) || !IsLegal(Make(pos, m)) {
-		panic(fmt.Sprintf("%v is illegal", m))
+		return m, fmt.Errorf("%v is illegal", m)
 	}
-	return 0, m
+	return m, nil
 }

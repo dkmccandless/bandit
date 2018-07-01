@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 // A Move contains the information needed to transition from one Position to another.
 type Move struct {
 	From          Square
@@ -590,6 +592,9 @@ func LongAlgebraic(m Move) string {
 // ParseUserMove parses text as the concatenation of two Squares, e.g. "e2e4",
 // and returns the corresponding Squares.
 func ParseUserMove(s string) (from, to Square, err error) {
+	if len(s) != 4 {
+		return 0, 0, fmt.Errorf("length %v input (want 4)", len(s))
+	}
 	from, err = ParseSquare(s[:2])
 	if err != nil {
 		return
