@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -21,7 +23,8 @@ func main() {
 		panic(err)
 	}
 
-	players := []Player{Computer{*depth}, Computer{*depth}}
+	stdin := bufio.NewScanner(os.Stdin)
+	players := []Player{Human{stdin}, Computer{*depth}}
 
 	startTime := time.Now()
 	var movesText string
@@ -67,4 +70,37 @@ type Computer struct{ depth int }
 func (c Computer) Play(pos Position) (int, Move) {
 	_, results := SearchPosition(pos, c.depth)
 	return results[0].score, results[0].move
+}
+
+type Human struct{ s *bufio.Scanner }
+
+func (h Human) Play(pos Position) (int, Move) {
+	fmt.Printf("> ")
+	if ok := h.s.Scan(); !ok {
+		panic(h.s.Err())
+	}
+	from, to, err := ParseUserMove(h.s.Text())
+	if err != nil {
+		panic(err)
+	}
+	c, p := pos.PieceOn(from)
+	if p == None {
+		panic(fmt.Sprintf("No piece on square %v", from))
+	}
+	if c != pos.ToMove {
+		panic(fmt.Sprintf("%v piece on square %v", c, from))
+	}
+	cc, cp := pos.PieceOn(to)
+	if cp != None && cc == c {
+		panic(fmt.Sprintf("%v piece on square %v", cc, to))
+	}
+	var cs Square
+	if cp != None {
+		cs = to
+	} // TODO: en passant, promotion
+	m := Move{From: from, To: to, Piece: p, CapturePiece: cp, CaptureSquare: cs}
+	if !IsPseudoLegal(pos, m) || !IsLegal(Make(pos, m)) {
+		panic(fmt.Sprintf("%v is illegal", m))
+	}
+	return 0, m
 }
