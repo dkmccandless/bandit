@@ -16,13 +16,15 @@ var (
 
 func main() {
 	var (
-		moveTime = flag.Duration("time", 3*time.Second, "computer's time per move, or 0 for no time limit")
-		depth    = flag.Int("depth", 0, "the search depth, or 0 for no depth limit")
-		fen      = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
+		moveTime   = flag.Duration("time", 3*time.Second, "computer's time per move, or 0 for no time limit")
+		depth      = flag.Int("depth", 0, "the search depth, or 0 for no depth limit")
+		fen        = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
+		humanWhite = flag.Bool("w", false, "user plays White")
+		humanBlack = flag.Bool("b", false, "user plays Black")
 	)
 	flag.Parse()
 	switch {
-	case *moveTime <= 0 && *depth <= 0:
+	case (!*humanWhite || !*humanBlack) && *moveTime <= 0 && *depth <= 0:
 		panic("unlimited time and depth")
 	case *moveTime <= 0:
 		*moveTime = 86164091 * time.Millisecond
@@ -36,7 +38,13 @@ func main() {
 	}
 
 	stdin := bufio.NewScanner(os.Stdin)
-	players := []Player{Human{stdin}, Computer{*moveTime, *depth}}
+	players := []Player{Computer{*moveTime, *depth}, Computer{*moveTime, *depth}}
+	if *humanWhite {
+		players[White] = Human{stdin}
+	}
+	if *humanBlack {
+		players[Black] = Human{stdin}
+	}
 
 	startTime := time.Now()
 	var movesText string
