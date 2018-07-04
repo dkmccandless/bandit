@@ -16,12 +16,18 @@ var (
 
 func main() {
 	var (
-		depth = flag.Int("depth", 4, "the search depth")
-		fen   = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
+		moveTime = flag.Duration("time", 3*time.Second, "computer's time per move, or 0 for no time limit")
+		depth    = flag.Int("depth", 0, "the search depth, or 0 for no depth limit")
+		fen      = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
 	)
 	flag.Parse()
-	if *depth < 1 {
-		panic("invalid search depth")
+	switch {
+	case *moveTime <= 0 && *depth <= 0:
+		panic("unlimited time and depth")
+	case *moveTime <= 0:
+		*moveTime = 86164091 * time.Millisecond
+	case *depth <= 0:
+		*depth = 100
 	}
 
 	pos, err := ParseFEN(*fen)
@@ -30,7 +36,7 @@ func main() {
 	}
 
 	stdin := bufio.NewScanner(os.Stdin)
-	players := []Player{Human{stdin}, Computer{*depth}}
+	players := []Player{Human{stdin}, Computer{*moveTime, *depth}}
 
 	startTime := time.Now()
 	var movesText string
@@ -82,11 +88,14 @@ type Player interface {
 	Play(Position) (int, Move)
 }
 
-type Computer struct{ depth int }
+type Computer struct {
+	moveTime time.Duration
+	depth    int
+}
 
 func (c Computer) Play(pos Position) (int, Move) {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, c.moveTime)
 	defer cancel()
 
 	_, results := SearchPosition(ctx, pos, c.depth)
