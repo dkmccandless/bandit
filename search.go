@@ -61,7 +61,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 		score *= -1
 
 		// Store the score in results relative to White
-		results = append(results, Result{move: r.move, score: score * evalMult(pos.ToMove), depth: depth - 1, cont: cont})
+		results = results.Update(Result{move: r.move, score: score * evalMult(pos.ToMove), depth: depth - 1, cont: cont})
 
 		if depth >= 3 && ctx.Err() != nil {
 			break
@@ -144,23 +144,33 @@ func (r Result) PV() string {
 // A Results should be sorted by the function generating it before it is returned.
 type Results []Result
 
-func (r Results) Len() int      { return len(r) }
-func (r Results) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+func (rs Results) Len() int      { return len(rs) }
+func (rs Results) Swap(i, j int) { rs[i], rs[j] = rs[j], rs[i] }
 
 // Less reports whether the Result with index i should sort before the Result with index j.
 // It sorts first by depth and then by score.
-func (r Results) Less(i, j int) bool {
-	return r[i].depth < r[j].depth || r[i].depth == r[j].depth && r[i].score < r[j].score
+func (rs Results) Less(i, j int) bool {
+	return rs[i].depth < rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score < rs[j].score
 }
 
 // SortFor sorts r beginning with the best move for c.
-func (r Results) SortFor(c Color) {
+func (rs Results) SortFor(c Color) {
 	if c == White {
 		// highest score first
-		sort.Sort(sort.Reverse(r))
+		sort.Sort(sort.Reverse(rs))
 	} else {
-		sort.Sort(r)
+		sort.Sort(rs)
 	}
+}
+
+func (rs Results) Update(r Result) Results {
+	for i := range rs {
+		if rs[i].move == r.move {
+			rs[i] = r
+			return rs
+		}
+	}
+	return append(rs, r)
 }
 
 // String returns a string representation of all Result values in r.
