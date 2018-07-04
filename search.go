@@ -77,12 +77,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 		}
 	}
 
-	if pos.ToMove == White {
-		// highest score first
-		sort.Sort(sort.Reverse(results))
-	} else {
-		sort.Sort(results)
-	}
+	results.SortFor(pos.ToMove)
 	return w.alpha, results
 }
 
@@ -156,6 +151,16 @@ func (r Results) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 // It sorts first by depth and then by score.
 func (r Results) Less(i, j int) bool {
 	return r[i].depth < r[j].depth || r[i].depth == r[j].depth && r[i].score < r[j].score
+}
+
+// SortFor sorts r beginning with the best move for c.
+func (r Results) SortFor(c Color) {
+	if c == White {
+		// highest score first
+		sort.Sort(sort.Reverse(r))
+	} else {
+		sort.Sort(r)
+	}
 }
 
 // String returns a string representation of all Result values in r.
