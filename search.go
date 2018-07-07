@@ -24,16 +24,21 @@ func SearchPosition(ctx context.Context, pos Position, depth int) (score int, re
 
 // negamax recursively searches a Position to the specified depth and returns the evaluation score
 // relative to the side to move and the search results. It employs alpha-beta pruning outside of
-// the specified Window. If recommended is zero length, negamax will generate and search all
-// pseudo-legal moves; if recommended moves are provided, they must all be pseudo-legal, and
-// only they will be searched.
+// the specified Window. If recommended is zero length, negamax will generate and search all legal
+// moves; if recommended moves are provided, they must all be legal, and only they will be searched.
 func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore int, results Results) {
 	counters[0]++
 
 	if len(recommended) == 0 {
 		moves := Candidates(pos) // pseudo-legal
-
-		if !anyLegal(pos, moves) { // checkmate or stalemate
+		recommended = make(Results, 0, len(moves))
+		for _, m := range moves {
+			if !IsLegal(Make(pos, m)) {
+				continue
+			}
+			recommended = append(recommended, Result{move: m})
+		}
+		if len(recommended) == 0 { // checkmate or stalemate
 			if IsCheck(pos) {
 				bestScore = -evalInf
 			}
@@ -43,23 +48,14 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			bestScore = Eval(pos) * evalMult(pos.ToMove)
 			return
 		}
-
-		recommended = make(Results, 0, len(moves))
-		for _, m := range moves {
-			recommended = append(recommended, Result{move: m})
-		}
 	}
+	// Invariant: len(recommended) > 0 and recommended contains only legal moves
 
 	results = make(Results, 0, len(recommended))
 	defer func() { results.SortFor(pos.ToMove) }()
 
 	for _, r := range recommended {
-		newpos := Make(pos, r.move)
-		if !IsLegal(newpos) {
-			continue
-		}
-
-		score, cont := negamax(ctx, newpos, Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
+		score, cont := negamax(ctx, Make(pos, r.move), Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
 		score *= -1
 
 		// Store the score in results relative to White
