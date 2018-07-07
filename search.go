@@ -51,6 +51,8 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 	}
 
 	results = make(Results, 0, len(recommended))
+	defer func() { results.SortFor(pos.ToMove) }()
+
 	for _, r := range recommended {
 		newpos := Make(pos, r.move)
 		if !IsLegal(newpos) {
@@ -77,7 +79,6 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 		}
 	}
 
-	results.SortFor(pos.ToMove)
 	return w.alpha, results
 }
 
