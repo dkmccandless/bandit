@@ -175,10 +175,10 @@ func (rs Results) Update(r Result) Results {
 }
 
 // String returns a string representation of all Result values in r.
-func (r Results) String() string {
+func (rs Results) String() string {
 	var s string
-	for _, result := range r {
-		s += fmt.Sprintf("%v\n", result.String())
+	for _, r := range rs {
+		s += fmt.Sprintf("%v\n", r.String())
 	}
 	return s
 }
