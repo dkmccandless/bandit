@@ -151,7 +151,23 @@ func Eval(pos Position) int {
 	br := PopCount(pos.b[Black][Rook])
 	bq := PopCount(pos.b[Black][Queen])
 
-	phase := queenPhase*(wq+bq) + rookPhase*(wr+br) + bishopPhase*(wb+bb) + knightPhase*(wn+bn) + pawnPhase*(wp+bp)
+	npawns, nknights, nbishops, nrooks, nqueens := wp+bp, wn+bn, wb+bb, wr+br, wq+bq
+
+	// Check for draw due to insufficient material
+	if npawns == 0 && nrooks == 0 && nqueens == 0 {
+		switch {
+		case nknights+nbishops <= 1:
+			// KvK, KNvK, KBvK
+			return 0
+		case nknights == 0:
+			if bishops := (pos.b[White][Bishop] | pos.b[Black][Bishop]); bishops&DarkSquares == 0 || bishops&LightSquares == 0 {
+				// kings and any number of same color bishops
+				return 0
+			}
+		}
+	}
+
+	phase := queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
 
 	var eval int
 	for sq := a1; sq <= h8; sq++ {

@@ -120,6 +120,8 @@ const (
 )
 
 const (
+	DarkSquares      Board = 0xaa55aa55aa55aa55
+	LightSquares     Board = ^DarkSquares
 	LongDiagonal     Board = 0x8040201008040201 // a1 to h8
 	LongAntiDiagonal Board = 0x0102040810204080 // h1 to a8
 )
