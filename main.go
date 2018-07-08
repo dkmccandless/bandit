@@ -140,6 +140,14 @@ func (h Human) Play(pos Position) (int, Move) {
 			fmt.Println(err)
 			continue
 		}
+		// get engine's opinion of Human's move
+		cancel()
+		results := <-ch
+		for _, r := range results {
+			if r.move == m {
+				return r.score, m
+			}
+		}
 		return 0, m
 	}
 }
