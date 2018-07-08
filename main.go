@@ -16,19 +16,21 @@ var (
 
 func main() {
 	var (
-		moveTime   = flag.Duration("time", 3*time.Second, "computer's time per move, or 0 for no time limit")
-		depth      = flag.Int("depth", 0, "the search depth, or 0 for no depth limit")
-		fen        = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
-		humanWhite = flag.Bool("w", false, "user plays White")
-		humanBlack = flag.Bool("b", false, "user plays Black")
+		defaultTime = 3 * time.Second
+		moveTime    = flag.Duration("time", 0, fmt.Sprintf("computer's time per move (default %v if no depth limit set)", defaultTime))
+		depth       = flag.Int("depth", 0, "the search depth")
+		fen         = flag.String("fen", InitialPositionFEN, "the FEN record of the starting position")
+		humanWhite  = flag.Bool("w", false, "user plays White")
+		humanBlack  = flag.Bool("b", false, "user plays Black")
 	)
 	flag.Parse()
-	switch {
-	case (!*humanWhite || !*humanBlack) && *moveTime <= 0 && *depth <= 0:
-		panic("unlimited time and depth")
-	case *moveTime <= 0:
+	if *moveTime <= 0 {
 		*moveTime = 86164091 * time.Millisecond
-	case *depth <= 0:
+		if *depth <= 0 {
+			*moveTime = defaultTime
+		}
+	}
+	if *depth <= 0 {
 		*depth = 100
 	}
 
