@@ -157,13 +157,30 @@ func (h Human) readMove(pos Position) (m Move, err error) {
 	if ok := h.s.Scan(); !ok {
 		return m, h.s.Err()
 	}
-	if h.s.Text() == "resign" {
+	text := h.s.Text()
+	var promote Piece
+	switch {
+	case text == "resign":
 		return
-	}
-	if h.s.Text() == "go" {
+	case text == "go":
 		return m, ErrGo
+	case len(text) == 5:
+		switch text[4:] {
+		case "q":
+			promote = Queen
+			text = text[:4]
+		case "r":
+			promote = Rook
+			text = text[:4]
+		case "b":
+			promote = Bishop
+			text = text[:4]
+		case "n":
+			promote = Knight
+			text = text[:4]
+		}
 	}
-	from, to, err := ParseUserMove(h.s.Text())
+	from, to, err := ParseUserMove(text)
 	if err != nil {
 		return m, err
 	}
@@ -178,13 +195,16 @@ func (h Human) readMove(pos Position) (m Move, err error) {
 	if cp != None && cc == c {
 		return m, fmt.Errorf("%v piece on square %v", cc, to)
 	}
+	if promote != None && (p != Pawn || (pos.ToMove == White && to.Rank() != 7) || (pos.ToMove == Black && to.Rank() != 0)) {
+		return m, fmt.Errorf("illegal promotion")
+	}
 	var cs Square
 	if cp != None {
 		cs = to
-	} // TODO: en passant, promotion
-	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, CaptureSquare: cs}
+	} // TODO: en passant
+	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, CaptureSquare: cs, PromotePiece: promote}
 	if !IsPseudoLegal(pos, m) || !IsLegal(Make(pos, m)) {
-		return m, fmt.Errorf("%v is illegal", m)
+		return m, fmt.Errorf("illegal move")
 	}
 	return m, nil
 }
