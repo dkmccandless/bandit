@@ -150,7 +150,7 @@ func BenchmarkSearchPosition(b *testing.B) {
 	}
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		_, _ = SearchPosition(ctx, pos, 2)
+		SearchPosition(ctx, pos, 2)
 	}
 }
 

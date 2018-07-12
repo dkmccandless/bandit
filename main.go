@@ -108,7 +108,7 @@ func (c Computer) Play(pos Position) (int, Move) {
 	ctx, cancel := context.WithTimeout(ctx, c.moveTime)
 	defer cancel()
 
-	_, results := SearchPosition(ctx, pos, c.depth)
+	results := SearchPosition(ctx, pos, c.depth)
 	return results[0].score, results[0].move
 }
 
@@ -124,7 +124,7 @@ func (h Human) Play(pos Position) (int, Move) {
 	defer cancel()
 
 	go func() {
-		_, results := SearchPosition(ctx, pos, 100)
+		results := SearchPosition(ctx, pos, 100)
 		ch <- results
 		close(ch)
 	}()

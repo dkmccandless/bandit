@@ -11,15 +11,16 @@ const (
 )
 
 // SearchPosition searches a Position to the specified depth via iterative deepening
-// and returns the evaluation score relative to the side to move and the search results.
-func SearchPosition(ctx context.Context, pos Position, depth int) (score int, results Results) {
+// and returns the search results.
+func SearchPosition(ctx context.Context, pos Position, depth int) Results {
+	var results Results
 	for d := 1; d <= depth; d++ {
+		_, results = negamax(ctx, pos, results, NewWindow(-evalInf, evalInf), d, true, make([]int, d+1))
 		if ctx.Err() != nil {
-			return
+			break
 		}
-		score, results = negamax(ctx, pos, results, NewWindow(-evalInf, evalInf), d, true, make([]int, d+1))
 	}
-	return
+	return results
 }
 
 // negamax recursively searches a Position to the specified depth and returns the evaluation score
