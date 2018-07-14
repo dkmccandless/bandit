@@ -52,11 +52,11 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 	}
 	// Invariant: len(recommended) > 0 and recommended contains only legal moves
 
-	results = make(Results, 0, len(recommended))
+	results = recommended
 	defer func() { results.SortFor(pos.ToMove) }()
 
 	for _, r := range recommended {
-		score, cont := negamax(ctx, Make(pos, r.move), Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
+		score, cont := negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1, allowCutoff, counters[1:])
 		score *= -1
 
 		results = results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont})
@@ -151,6 +151,7 @@ func (rs Results) Less(i, j int) bool {
 }
 
 // SortFor sorts r beginning with the best move for c.
+// TODO: Correctly sort by depth for Black
 func (rs Results) SortFor(c Color) {
 	if c == White {
 		// highest score first
