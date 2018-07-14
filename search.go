@@ -137,27 +137,23 @@ func (r Result) PV() string {
 	return LongAlgebraic(r.move) + " " + r.cont[0].PV()
 }
 
-// A Results contains the results of a search. Results satisfies sort.Interface.
-// A Results should be sorted by the function generating it before it is returned.
+// A Results contains the results of a search.
+// Functions returning a Results should sort it before returning.
 type Results []Result
 
-func (rs Results) Len() int      { return len(rs) }
-func (rs Results) Swap(i, j int) { rs[i], rs[j] = rs[j], rs[i] }
-
-// Less reports whether the Result with index i should sort before the Result with index j.
-// It sorts first by depth and then by score.
-func (rs Results) Less(i, j int) bool {
-	return rs[i].depth < rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score < rs[j].score
-}
-
 // SortFor sorts r beginning with the best move for c.
-// TODO: Correctly sort by depth for Black
+// The sort is not guaranteed to be stable.
 func (rs Results) SortFor(c Color) {
 	if c == White {
-		// highest score first
-		sort.Sort(sort.Reverse(rs))
+		// Sort first by depth decreasing and then by Score decreasing
+		sort.Slice(rs, func(i, j int) bool {
+			return rs[i].depth > rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score > rs[j].score
+		})
 	} else {
-		sort.Sort(rs)
+		// Sort first by depth decreasing and then by Score increasing
+		sort.Slice(rs, func(i, j int) bool {
+			return rs[i].depth > rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score < rs[j].score
+		})
 	}
 }
 
