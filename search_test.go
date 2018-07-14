@@ -156,7 +156,7 @@ func BenchmarkSearchPosition(b *testing.B) {
 
 var windowTests = []struct {
 	w, neg          Window
-	n               int
+	n               RelScore
 	c               Window
 	constrained, ok bool
 }{

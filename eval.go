@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 const (
 	opening = iota
 	endgame
@@ -14,7 +16,7 @@ const (
 )
 
 // The static evaluation of each type of Piece.
-var pieceEval = [6][2]int{
+var pieceEval = [6][2]RelScore{
 	// opening, endgame
 	{},
 	{100, 100},
@@ -25,7 +27,7 @@ var pieceEval = [6][2]int{
 }
 
 // Piece-square tables modifying the evaluation of a Piece depending on its Square.
-type pieceSquare [64]int
+type pieceSquare [64]RelScore
 
 func (ps pieceSquare) flip() pieceSquare {
 	var f pieceSquare
@@ -138,7 +140,7 @@ func init() {
 }
 
 // Eval returns a Position's evaluation score in centipawns relative to White.
-func Eval(pos Position) int {
+func Eval(pos Position) Score {
 	wp := PopCount(pos.b[White][Pawn])
 	wn := PopCount(pos.b[White][Knight])
 	wb := PopCount(pos.b[White][Bishop])
@@ -169,25 +171,54 @@ func Eval(pos Position) int {
 
 	phase := queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
 
-	var eval int
+	var eval Score
 	for sq := a1; sq <= h8; sq++ {
 		switch c, p := pos.PieceOn(sq); {
 		case p == None:
 			continue
 		case p == King:
-			eval += evalMult(c) * taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase)
+			eval += taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase).Abs(c)
 		default:
-			eval += evalMult(c) * (taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][sq])
+			eval += (taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][sq]).Abs(c)
 		}
 	}
 	return eval
 }
 
-func taper(open, end, phase int) int {
-	return (open*phase + end*(totalPhase-phase)) / totalPhase
+func taper(open, end RelScore, phase int) RelScore {
+	return (open*RelScore(phase) + end*(totalPhase-RelScore(phase))) / totalPhase
 }
 
 // evalMult returns an evaluation sign multiplier of 1 for White and -1 for Black.
 func evalMult(c Color) int {
 	return 1 - 2*int(c)
+}
+
+// A Score represents the engine's evaluation of a Position in centipawns relative to White.
+type Score int
+
+// String returns a string representation of s.
+func (s Score) String() string { return fmt.Sprintf("%.2f", float64(s)/100) }
+
+// Rel returns the RelScore of s with respect to c.
+// This is equal to s for White and -s for Black.
+func (s Score) Rel(c Color) RelScore {
+	r := RelScore(s)
+	if c == Black {
+		return -r
+	}
+	return r
+}
+
+// A RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
+type RelScore int
+
+// Abs returns the Score of r relative to White, where r is with respect to c.
+// This is equal to r for White and -r for Black.
+func (r RelScore) Abs(c Color) Score {
+	s := Score(r)
+	if c == Black {
+		return -s
+	}
+	return s
 }

@@ -153,7 +153,7 @@ func TestPerft(t *testing.T) {
 		}
 
 		got := make([]int, wantDepth+1)
-		_, _ = negamax(context.Background(), pos, Results{}, NewWindow(0, 0), wantDepth, false, got)
+		negamax(context.Background(), pos, Results{}, Window{0, 0}, wantDepth, false, got)
 		got = got[1:]
 		for i := range got {
 			if got[i] != test.want[i] {

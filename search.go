@@ -15,7 +15,7 @@ const (
 func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 	var results Results
 	for d := 1; d <= depth; d++ {
-		_, results = negamax(ctx, pos, results, NewWindow(-evalInf, evalInf), d, true, make([]int, d+1))
+		_, results = negamax(ctx, pos, results, Window{-evalInf, evalInf}, d, true, make([]int, d+1))
 		if ctx.Err() != nil {
 			break
 		}
@@ -27,7 +27,7 @@ func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 // relative to the side to move and the search results. It employs alpha-beta pruning outside of
 // the specified Window. If recommended is zero length, negamax will generate and search all legal
 // moves; if recommended moves are provided, they must all be legal, and only they will be searched.
-func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore int, results Results) {
+func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore RelScore, results Results) {
 	counters[0]++
 
 	if len(recommended) == 0 {
@@ -46,7 +46,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			return
 		}
 		if depth == 0 {
-			bestScore = Eval(pos) * evalMult(pos.ToMove)
+			bestScore = Eval(pos).Rel(pos.ToMove)
 			return
 		}
 	}
@@ -59,8 +59,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 		score, cont := negamax(ctx, Make(pos, r.move), Results{}, w.Neg(), depth-1, allowCutoff, counters[1:])
 		score *= -1
 
-		// Store the score in results relative to White
-		results = results.Update(Result{move: r.move, score: score * evalMult(pos.ToMove), depth: depth - 1, cont: cont})
+		results = results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont})
 
 		if depth >= 3 && ctx.Err() != nil {
 			break
@@ -91,7 +90,7 @@ func IsPseudoLegal(pos Position, move Move) bool {
 	return false
 }
 
-// IsLegal returns whether a Position results from a legal move.
+// IsLegal returns whether a Position is legal.
 // A position is illegal if the king of the side that just moved is in check.
 func IsLegal(pos Position) bool {
 	return !IsAttacked(pos, pos.KingSquare[pos.Opp()], pos.ToMove)
@@ -116,18 +115,18 @@ func anyLegal(pos Position, moves []Move) bool {
 	return false
 }
 
-// A Result holds the score of a searched Move (relative to White),
+// A Result holds a searched Move along with its evaluated Score,
 // the search depth, and the continuation Results of the search.
 type Result struct {
 	move  Move
-	score int
+	score Score
 	depth int
 	cont  Results
 }
 
 // String returns a string representation of r, including its principal variation.
 func (r Result) String() string {
-	return fmt.Sprintf("%v (%v) %v", float64(r.score)/100, r.depth, r.PV())
+	return fmt.Sprintf("%v (%v) %v", r.score, r.depth, r.PV())
 }
 
 // PV returns a string representation of r's principal variation.
@@ -161,6 +160,8 @@ func (rs Results) SortFor(c Color) {
 	}
 }
 
+// Update looks for a Result in rs with the same Move as r and replaces it with r,
+// or appends r if there is none, and returns the possibly updated slice.
 func (rs Results) Update(r Result) Results {
 	for i := range rs {
 		if rs[i].move == r.move {
@@ -181,19 +182,11 @@ func (rs Results) String() string {
 }
 
 // A Window represents the bounds of a position's evaluation.
-type Window struct{ alpha, beta int }
-
-// NewWindow returns a Window with the given bounds. It panics if alpha > beta.
-func NewWindow(alpha, beta int) Window {
-	if alpha > beta {
-		panic(fmt.Sprintf("invalid window bounds %v, %v", alpha, beta))
-	}
-	return Window{alpha, beta}
-}
+type Window struct{ alpha, beta RelScore }
 
 // Constrain updates the lower bound of w, if applicable, and returns the updated window,
 // whether the lower bound was changed, and whether the returned Window remains valid.
-func (w Window) Constrain(n int) (c Window, constrained bool, ok bool) {
+func (w Window) Constrain(n RelScore) (c Window, constrained bool, ok bool) {
 	if n <= w.alpha {
 		return w, false, true
 	}
