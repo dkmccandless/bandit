@@ -2,21 +2,38 @@ package main
 
 import "testing"
 
-func TestInsufficientMaterial(t *testing.T) {
-	for _, fen := range []string{
-		"K6k/8/8/8/8/8/8/8 w - - 0 1",
-		"KN5k/8/8/8/8/8/8/8 w - - 0 1",
-		"KB5k/8/8/8/8/8/8/8 w - - 0 1",
-		"KB1b3k/8/8/8/8/8/8/8 w - - 0 1",
-		"K6k/8/8/8/8/8/8/1B1B1B1B w - - 0 1",
-		"K1b1b1bk/8/8/8/8/8/8/1B1B1B1B w - - 0 1",
+func TestIsInsufficient(t *testing.T) {
+	for _, test := range []struct {
+		fen  string
+		want bool
+	}{
+		{"K6k/8/8/8/8/8/8/8 w - - 0 1", true},
+		{"KN5k/8/8/8/8/8/8/8 w - - 0 1", true},
+		{"KB5k/8/8/8/8/8/8/8 w - - 0 1", true},
+		{"KB1b3k/8/8/8/8/8/8/8 w - - 0 1", true},
+		{"K6k/8/8/8/8/8/8/1B1B1B1B w - - 0 1", true},
+		{"K1b1b1bk/8/8/8/8/8/8/1B1B1B1B w - - 0 1", true},
+		{"KN4nk/8/8/8/8/8/8/8 w - - 0 1", false},
+		{"KNN4k/8/8/8/8/8/8/8 w - - 0 1", false},
+		{"KNB4k/8/8/8/8/8/8/8 w - - 0 1", false},
+		{"KNb4k/8/8/8/8/8/8/8 w - - 0 1", false},
+		{"K6k/P7/8/8/8/8/8/8 w - - 0 1", false},
+		{"K6k/R7/8/8/8/8/8/8 w - - 0 1", false},
+		{"K6k/Q7/8/8/8/8/8/8 w - - 0 1", false},
+		{InitialPositionFEN, false},
 	} {
-		pos, err := ParseFEN(fen)
+		pos, err := ParseFEN(test.fen)
 		if err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
-		if got := Eval(pos); got != 0 {
-			t.Errorf("Insufficient Material: Eval(%v)==%v, want 0", fen, got)
+		npawns := PopCount(pos.b[White][Pawn] | pos.b[Black][Pawn])
+		nknights := PopCount(pos.b[White][Knight] | pos.b[Black][Knight])
+		nbishops := PopCount(pos.b[White][Bishop] | pos.b[Black][Bishop])
+		nrooks := PopCount(pos.b[White][Rook] | pos.b[Black][Rook])
+		nqueens := PopCount(pos.b[White][Queen] | pos.b[Black][Queen])
+
+		if got := IsInsufficient(pos, npawns, nknights, nbishops, nrooks, nqueens); got != test.want {
+			t.Errorf("IsInsufficient(%v): got %v, want %v", test.fen, got, test.want)
 		}
 	}
 }
