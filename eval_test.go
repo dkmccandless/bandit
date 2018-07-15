@@ -20,3 +20,13 @@ func TestInsufficientMaterial(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkEval(b *testing.B) {
+	pos, err := ParseFEN("r1b2rkB/1pp1ppbp/2n3p1/8/PpP3nP/8/3KPP2/1N3BNR w - - 0 13")
+	if err != nil {
+		b.Fatal(err)
+	}
+	for i := 0; i < b.N; i++ {
+		Eval(pos)
+	}
+}
