@@ -155,18 +155,8 @@ func Eval(pos Position) Score {
 
 	npawns, nknights, nbishops, nrooks, nqueens := wp+bp, wn+bn, wb+bb, wr+br, wq+bq
 
-	// Check for draw due to insufficient material
-	if npawns == 0 && nrooks == 0 && nqueens == 0 {
-		switch {
-		case nknights+nbishops <= 1:
-			// KvK, KNvK, KBvK
-			return 0
-		case nknights == 0:
-			if bishops := (pos.b[White][Bishop] | pos.b[Black][Bishop]); bishops&DarkSquares == 0 || bishops&LightSquares == 0 {
-				// kings and any number of same color bishops
-				return 0
-			}
-		}
+	if IsInsufficient(pos, npawns, nknights, nbishops, nrooks, nqueens) {
+		return 0
 	}
 
 	phase := queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
@@ -189,9 +179,28 @@ func taper(open, end RelScore, phase int) RelScore {
 	return (open*RelScore(phase) + end*(totalPhase-RelScore(phase))) / totalPhase
 }
 
-// evalMult returns an evaluation sign multiplier of 1 for White and -1 for Black.
-func evalMult(c Color) int {
-	return 1 - 2*int(c)
+// IsInsufficient reports whether a collection of pieces constitutes insufficient material
+// to deliver checkmate. This is a subset of the condition of impossibility of checkmate,
+// which results in an automatic draw.
+func IsInsufficient(pos Position, npawns, nknights, nbishops, nrooks, nqueens int) bool {
+	if npawns > 0 || nrooks > 0 || nqueens > 0 {
+		return false
+	}
+	if nknights+nbishops <= 1 {
+		// KvK, KNvK, KBvK
+		return true
+	}
+	if nknights > 0 {
+		// knight and at least one other minor piece; in KNNvK, KBvKN, and KNvKN,
+		// mate can't be forced, although it can be given by a series of legal moves
+		return false
+	}
+	if bishops := (pos.b[White][Bishop] | pos.b[Black][Bishop]); bishops&DarkSquares == 0 || bishops&LightSquares == 0 {
+		// kings and any number of same color bishops only
+		return true
+	}
+	// opposite color bishops; KBvKB can mate, although not by force
+	return false
 }
 
 // A Score represents the engine's evaluation of a Position in centipawns relative to White.
