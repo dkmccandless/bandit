@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
 	opening = iota
@@ -14,6 +17,10 @@ const (
 
 	totalPhase = 2 * (queenPhase + 2*rookPhase + 2*bishopPhase + 2*knightPhase + 8*pawnPhase)
 )
+
+// errInsufficient is returned by Eval when neither player has sufficient material
+// to deliver checkmate by any sequence of legal moves.
+var errInsufficient = errors.New("insufficient material")
 
 // The static evaluation of each type of Piece.
 var pieceEval = [6][2]RelScore{
@@ -140,7 +147,8 @@ func init() {
 }
 
 // Eval returns a Position's evaluation score in centipawns relative to White.
-func Eval(pos Position) Score {
+// It returns errInsufficient in the case of insufficient material.
+func Eval(pos Position) (Score, error) {
 	wp := PopCount(pos.b[White][Pawn])
 	wn := PopCount(pos.b[White][Knight])
 	wb := PopCount(pos.b[White][Bishop])
@@ -156,7 +164,7 @@ func Eval(pos Position) Score {
 	npawns, nknights, nbishops, nrooks, nqueens := wp+bp, wn+bn, wb+bb, wr+br, wq+bq
 
 	if IsInsufficient(pos, npawns, nknights, nbishops, nrooks, nqueens) {
-		return 0
+		return 0, errInsufficient
 	}
 
 	phase := queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
@@ -172,7 +180,7 @@ func Eval(pos Position) Score {
 			eval += (taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][sq]).Abs(c)
 		}
 	}
-	return eval
+	return eval, nil
 }
 
 func taper(open, end RelScore, phase int) RelScore {

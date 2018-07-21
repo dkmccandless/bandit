@@ -15,7 +15,7 @@ const (
 func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 	var results Results
 	for d := 1; d <= depth; d++ {
-		_, results = negamax(ctx, pos, results, Window{-evalInf, evalInf}, d, true, make([]int, d+1))
+		_, results, _ = negamax(ctx, pos, results, Window{-evalInf, evalInf}, d, true, make([]int, d+1))
 		if ctx.Err() != nil {
 			break
 		}
@@ -27,7 +27,7 @@ func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 // relative to the side to move and the search results. It employs alpha-beta pruning outside of
 // the specified Window. If recommended is zero length, negamax will generate and search all legal
 // moves; if recommended moves are provided, they must all be legal, and only they will be searched.
-func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore RelScore, results Results) {
+func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore RelScore, results Results, err error) {
 	counters[0]++
 
 	if len(recommended) == 0 {
@@ -46,8 +46,8 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			return
 		}
 		if depth == 0 {
-			bestScore = Eval(pos).Rel(pos.ToMove)
-			return
+			score, err := Eval(pos)
+			return score.Rel(pos.ToMove), results, err
 		}
 	}
 	// Invariant: len(recommended) > 0 and recommended contains only legal moves
@@ -56,10 +56,16 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 	defer func() { results.SortFor(pos.ToMove) }()
 
 	for _, r := range recommended {
-		score, cont := negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1, allowCutoff, counters[1:])
+		if r.err != nil {
+			// The move is already known not to avoid a game-ending state; no need to search it further
+			results = results.Update(r)
+			continue
+		}
+
+		score, cont, err := negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1, allowCutoff, counters[1:])
 		score *= -1
 
-		results = results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont})
+		results = results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
 
 		if depth >= 3 && ctx.Err() != nil {
 			break
@@ -74,8 +80,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			break
 		}
 	}
-
-	return w.alpha, results
+	return w.alpha, results, results[0].err
 }
 
 // IsPseudoLegal returns whether a Move is pseudo-legal in a Position.
@@ -122,11 +127,16 @@ type Result struct {
 	score Score
 	depth int
 	cont  Results
+	err   error
 }
 
 // String returns a string representation of r, including its principal variation.
 func (r Result) String() string {
-	return fmt.Sprintf("%v (%v) %v", r.score, r.depth, r.PV())
+	s := fmt.Sprintf("%v (%v) %v", r.score, r.depth, r.PV())
+	if r.err != nil {
+		return s + " " + r.err.Error()
+	}
+	return s
 }
 
 // PV returns a string representation of r's principal variation.

@@ -82,15 +82,20 @@ func main() {
 		fmt.Printf("%v%v %v %v\n", movenum, alg, score, time.Since(moveTime).Truncate(time.Millisecond))
 		fmt.Println(pos.String())
 
-		// Check for threefold repetition
-		posZobrists[pos.z]++
-		if posZobrists[pos.z] == 3 {
+		// Check for end-of-game conditions
+		if _, err := Eval(pos); err == errInsufficient {
+			movesText += "1/2-1/2"
+			break
+		}
+		if posZobrists[pos.z]++; posZobrists[pos.z] == 3 {
+			// threefold repetition
 			movesText += "1/2-1/2"
 			break
 		}
 	}
 
-	fmt.Println(movesText, time.Since(startTime).Truncate(time.Millisecond))
+	fmt.Println(movesText)
+	fmt.Println(time.Since(startTime).Truncate(time.Millisecond))
 }
 
 type Player interface {
@@ -109,6 +114,7 @@ func (c Computer) Play(pos Position) (Score, Move) {
 	defer cancel()
 
 	results := SearchPosition(ctx, pos, c.depth)
+	fmt.Println(results)
 	return results[0].score, results[0].move
 }
 
