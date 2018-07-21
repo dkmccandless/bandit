@@ -52,7 +52,7 @@ func main() {
 	var movesText string
 	posZobrists := make(map[Zobrist]int)
 
-	for !IsTerminal(pos) {
+	for {
 		moveTime := time.Now()
 
 		score, move := players[pos.ToMove].Play(pos)
@@ -83,12 +83,29 @@ func main() {
 		fmt.Println(pos.String())
 
 		// Check for end-of-game conditions
+		if IsTerminal(pos) {
+			if IsCheck(pos) {
+				if pos.ToMove == White {
+					movesText += "0-1"
+				} else {
+					movesText += "1-0"
+				}
+				break
+			}
+			movesText += "1/2-1/2"
+			break
+		}
 		if _, err := Eval(pos); err == errInsufficient {
 			movesText += "1/2-1/2"
 			break
 		}
 		if posZobrists[pos.z]++; posZobrists[pos.z] == 3 {
 			// threefold repetition
+			movesText += "1/2-1/2"
+			break
+		}
+		if pos.HalfMove == 100 {
+			// fifty-move rule
 			movesText += "1/2-1/2"
 			break
 		}

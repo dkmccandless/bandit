@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 )
@@ -9,6 +10,24 @@ import (
 const (
 	evalInf = 50000
 )
+
+var (
+	errCheckmate checkmateError
+	errStalemate = errors.New("stalemate")
+	errFiftyMove = errors.New("fifty-move rule")
+	// TODO: threefold repetition
+)
+
+// A checkmateError indicates the number of plies until a forced checkmate can be delivered.
+// The zero value of type checkmateError indicates that the current position is checkmate.
+type checkmateError int
+
+func (n checkmateError) Error() string {
+	if n&1 == 0 {
+		return fmt.Sprintf("-#%d", n/2)
+	}
+	return fmt.Sprintf("#%d", (n+1)/2)
+}
 
 // SearchPosition searches a Position to the specified depth via iterative deepening
 // and returns the search results.
@@ -39,11 +58,16 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			}
 			recommended = append(recommended, Result{move: m})
 		}
-		if len(recommended) == 0 { // checkmate or stalemate
+		if len(recommended) == 0 {
+			// no legal moves
 			if IsCheck(pos) {
-				bestScore = -evalInf
+				return -evalInf, results, errCheckmate
 			}
-			return
+			return 0, results, errStalemate
+		}
+		if pos.HalfMove == 100 && allowCutoff {
+			// fifty-move rule
+			return 0, results, errFiftyMove
 		}
 		if depth == 0 {
 			score, err := Eval(pos)
