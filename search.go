@@ -29,6 +29,9 @@ func (n checkmateError) Error() string {
 	return fmt.Sprintf("#%d", (n+1)/2)
 }
 
+// Prev returns the checkmateError corresponding to the previous ply.
+func (n checkmateError) Prev() checkmateError { return n + 1 }
+
 // SearchPosition searches a Position to the specified depth via iterative deepening
 // and returns the search results.
 func SearchPosition(ctx context.Context, pos Position, depth int) Results {
@@ -104,6 +107,9 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			break
 		}
 	}
+	if err, ok := results[0].err.(checkmateError); ok {
+		return w.alpha, results, err.Prev()
+	}
 	return w.alpha, results, results[0].err
 }
 
@@ -175,20 +181,50 @@ func (r Result) PV() string {
 // Functions returning a Results should sort it before returning.
 type Results []Result
 
-// SortFor sorts r beginning with the best move for c.
+// SortFor sorts rs beginning with the best move for c.
 // The sort is not guaranteed to be stable.
 func (rs Results) SortFor(c Color) {
 	if c == White {
-		// Sort first by depth decreasing and then by Score decreasing
+		// Sort first by mate condition, then by depth decreasing, and then by Score decreasing
 		sort.Slice(rs, func(i, j int) bool {
+			if less, ok := rs.mateSort(i, j); ok {
+				return less
+			}
 			return rs[i].depth > rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score > rs[j].score
 		})
 	} else {
-		// Sort first by depth decreasing and then by Score increasing
+		// Sort first by mate condition, then by depth decreasing, and then by Score increasing
 		sort.Slice(rs, func(i, j int) bool {
+			if less, ok := rs.mateSort(i, j); ok {
+				return less
+			}
 			return rs[i].depth > rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score < rs[j].score
 		})
 	}
+}
+
+// mateSort reports how two Result elements should be sorted if at least one of them leads to checkmate.
+// If ok is true, less reports whether the Result with index i should sort before the Result with index j.
+// If ok is false, the value of less is meaningless.
+func (rs Results) mateSort(i, j int) (less bool, ok bool) {
+	ich, iok := rs[i].err.(checkmateError)
+	jch, jok := rs[j].err.(checkmateError)
+	switch {
+	case iok && jok:
+		switch iwin, jwin := ich&1 == 0, jch&1 == 0; {
+		case iwin && jwin:
+			return ich < jch, true
+		case !iwin && !jwin:
+			return ich > jch, true
+		default:
+			return iwin, true
+		}
+	case iok:
+		return ich&1 == 0, true
+	case jok:
+		return jch&1 != 0, true
+	}
+	return false, false
 }
 
 // Update looks for a Result in rs with the same Move as r and replaces it with r,
