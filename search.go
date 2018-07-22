@@ -204,6 +204,7 @@ func (rs Results) SortFor(c Color) {
 }
 
 // mateSort reports how two Result elements should be sorted if at least one of them leads to checkmate.
+// ok reports whether either Result contains an error of type checkmateError.
 // If ok is true, less reports whether the Result with index i should sort before the Result with index j.
 // If ok is false, the value of less is meaningless.
 func (rs Results) mateSort(i, j int) (less bool, ok bool) {

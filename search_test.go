@@ -154,6 +154,42 @@ func BenchmarkSearchPosition(b *testing.B) {
 	}
 }
 
+func TestMateSort(t *testing.T) {
+	// rs is a Results whose elements are sorted in order of desirability,
+	// so that rs[i] should sort before rs[j] precisely when i < j,
+	// provided that at least one of them contains a checkmateError.
+	var rs = Results{
+		Result{err: checkmateError(0)},
+		Result{err: checkmateError(4)},
+		Result{err: checkmateError(14)},
+		Result{score: 100},
+		Result{err: errStalemate},
+		Result{err: errInsufficient},
+		Result{err: errFiftyMove},
+		Result{score: -100},
+		Result{err: checkmateError(15)},
+		Result{err: checkmateError(5)},
+		Result{err: checkmateError(1)},
+	}
+	for i := range rs {
+		for j := i + 1; j < len(rs); j++ {
+			_, iok := rs[i].err.(checkmateError)
+			_, jok := rs[j].err.(checkmateError)
+			wantok := iok || jok
+
+			wantless := wantok // true if the sort is valid
+			if gotless, gotok := rs.mateSort(i, j); gotless != wantless || gotok != wantok {
+				t.Errorf("TestMateSort(%v, %v): got %v, %v; want %v, %v", rs[i], rs[j], gotless, gotok, wantless, wantok)
+			}
+
+			wantless = false
+			if gotless, gotok := rs.mateSort(j, i); gotless != wantless || gotok != wantok {
+				t.Errorf("TestMateSort(%v, %v): got %v, %v; want %v, %v", rs[j], rs[i], gotless, gotok, wantless, wantok)
+			}
+		}
+	}
+}
+
 var windowTests = []struct {
 	w, neg          Window
 	n               RelScore
