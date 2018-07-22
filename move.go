@@ -32,6 +32,14 @@ func (m Move) IsKSCastle() bool { return m.Piece == King && m.To-m.From == 2 }
 // Make applies a Move to a Position and returns the resulting Position.
 // Behavior is undefined when the Move is illegal in the Position.
 func Make(pos Position, m Move) Position {
+	// update changes pos.z and the Boards of c when a Piece of type p moves to or from s
+	update := func(c Color, p Piece, s Square) {
+		b := s.Board()
+		pos.b[c][p] ^= b
+		pos.b[c][All] ^= b
+		pos.z.xorPiece(c, p, s)
+	}
+
 	// Remove en passant capturing rights from the Zobrist bitstring.
 	// In the event of an en passant capture, this must be done before the pawn bitboard is changed.
 	if pos.ep != 0 {
@@ -44,18 +52,13 @@ func Make(pos Position, m Move) Position {
 	}
 
 	// Move the piece
-	fromTo := m.From.Board() ^ m.To.Board()
-	pos.b[pos.ToMove][m.Piece] ^= fromTo
-	pos.b[pos.ToMove][All] ^= fromTo
-	pos.z.xorPiece(pos.ToMove, m.Piece, m.From)
-	pos.z.xorPiece(pos.ToMove, m.Piece, m.To)
+	update(pos.ToMove, m.Piece, m.From)
+	update(pos.ToMove, m.Piece, m.To)
 
 	switch {
 	case m.IsCapture():
 		// Remove the captured piece from CaptureSquare, not To
-		pos.b[pos.Opp()][m.CapturePiece] ^= m.CaptureSquare.Board()
-		pos.b[pos.Opp()][All] ^= m.CaptureSquare.Board()
-		pos.z.xorPiece(pos.Opp(), m.CapturePiece, m.CaptureSquare)
+		update(pos.Opp(), m.CapturePiece, m.CaptureSquare)
 		// Lose the relevant castling right
 		switch {
 		case (pos.ToMove == Black && m.CaptureSquare == a1) || (pos.ToMove == White && m.CaptureSquare == a8):
@@ -71,28 +74,20 @@ func Make(pos Position, m Move) Position {
 		}
 	case m.IsQSCastle():
 		// Move the castling rook
-		rookFromSquare, rookToSquare := m.From-4, m.From-1
-		rookFromTo := rookFromSquare.Board() ^ rookToSquare.Board()
-		pos.b[pos.ToMove][Rook] ^= rookFromTo
-		pos.b[pos.ToMove][All] ^= rookFromTo
-		pos.z.xorPiece(pos.ToMove, Rook, rookFromSquare)
-		pos.z.xorPiece(pos.ToMove, Rook, rookToSquare)
+		rookFrom, rookTo := m.From-4, m.From-1
+		update(pos.ToMove, Rook, rookFrom)
+		update(pos.ToMove, Rook, rookTo)
 	case m.IsKSCastle():
 		// Move the castling rook
-		rookFromSquare, rookToSquare := m.From+3, m.From+1
-		rookFromTo := rookFromSquare.Board() ^ rookToSquare.Board()
-		pos.b[pos.ToMove][Rook] ^= rookFromTo
-		pos.b[pos.ToMove][All] ^= rookFromTo
-		pos.z.xorPiece(pos.ToMove, Rook, rookFromSquare)
-		pos.z.xorPiece(pos.ToMove, Rook, rookToSquare)
+		rookFrom, rookTo := m.From+3, m.From+1
+		update(pos.ToMove, Rook, rookFrom)
+		update(pos.ToMove, Rook, rookTo)
 	}
 
 	if m.IsPromotion() {
 		// Replace the Pawn with PromotePiece
-		pos.b[pos.ToMove][Pawn] ^= m.To.Board()
-		pos.b[pos.ToMove][m.PromotePiece] ^= m.To.Board()
-		pos.z.xorPiece(pos.ToMove, Pawn, m.To)
-		pos.z.xorPiece(pos.ToMove, m.PromotePiece, m.To)
+		update(pos.ToMove, Pawn, m.To)
+		update(pos.ToMove, m.PromotePiece, m.To)
 	}
 
 	switch m.Piece {
@@ -209,29 +204,8 @@ func Candidates(pos Position) []Move {
 	return sorted
 }
 
-var (
-	kingAttacks   = make([]Board, 64)
-	knightAttacks = make([]Board, 64)
-)
-
-func init() {
-	for s := Square(0); s < 64; s++ {
-		b := s.Board()
-		// +7 +8 +9
-		// -1  K +1
-		// -9 -8 -7
-		kingAttacks[s] = southwest(b) | south(b) | southeast(b) | west(b) | east(b) | northwest(b) | north(b) | northeast(b)
-		//    +15  +17
-		//  +6        +10
-		//        N
-		// -10         -6
-		//    -17  -15
-		knightAttacks[s] = southwest(south(b)) | southeast(south(b)) | southwest(west(b)) | southeast(east(b)) | northwest(west(b)) | northeast(east(b)) | northwest(north(b)) | northeast(north(b))
-	}
-}
-
 var PieceMoves = []func(Position) []Move{
-	func(Position) []Move { return []Move{} },
+	nil,
 	PawnMoves,
 	KnightMoves,
 	BishopMoves,
@@ -331,14 +305,15 @@ func PawnMoves(pos Position) []Move {
 	return moves
 }
 
-// KnightMoves returns a slice of all pseudo-legal Moves that knights can make in the current Position.
-func KnightMoves(pos Position) []Move {
-	moves := make([]Move, 0, 2*8)
-	for knights := pos.b[pos.ToMove][Knight]; knights != 0; knights = ResetLS1B(knights) {
-		from := LS1BIndex(knights)
-		for dst := knightAttacks[from] &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
+// pMoves returns a slice of all pseudo-legal Moves that pieces of type p can make in pos.
+func pMoves(pos Position, p Piece) []Move {
+	moves := make([]Move, 0, 28) // two bishops, two rooks, or one queen can have 28 moves
+	empty := ^pos.b[White][All] & ^pos.b[Black][All]
+	for pieces := pos.b[pos.ToMove][p]; pieces != 0; pieces = ResetLS1B(pieces) {
+		f, from := LS1B(pieces), LS1BIndex(pieces)
+		for dst := pieceAttacks[p](f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
 			t, to := LS1B(dst), LS1BIndex(dst)
-			m := Move{From: from, To: to, Piece: Knight}
+			m := Move{From: from, To: to, Piece: p}
 			if t&pos.b[pos.Opp()][All] != 0 {
 				_, capturePiece := pos.PieceOn(to)
 				m.CapturePiece = capturePiece
@@ -349,86 +324,28 @@ func KnightMoves(pos Position) []Move {
 	}
 	return moves
 }
+
+// KnightMoves returns a slice of all pseudo-legal Moves that knights can make in the current Position.
+func KnightMoves(pos Position) []Move { return pMoves(pos, Knight) }
 
 // BishopMoves returns a slice of all pseudo-legal Moves that bishops can make in the current Position.
-func BishopMoves(pos Position) []Move {
-	moves := make([]Move, 0, 2*14)
-	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	for bishops := pos.b[pos.ToMove][Bishop]; bishops != 0; bishops = ResetLS1B(bishops) {
-		f, from := LS1B(bishops), LS1BIndex(bishops)
-		for dst := bishopAttacks(f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
-			t, to := LS1B(dst), LS1BIndex(dst)
-			m := Move{From: from, To: to, Piece: Bishop}
-			if t&pos.b[pos.Opp()][All] != 0 {
-				_, capturePiece := pos.PieceOn(to)
-				m.CapturePiece = capturePiece
-				m.CaptureSquare = to
-			}
-			moves = append(moves, m)
-		}
-	}
-	return moves
-}
+func BishopMoves(pos Position) []Move { return pMoves(pos, Bishop) }
 
 // RookMoves returns a slice of all pseudo-legal Moves that rooks can make in the current Position.
-func RookMoves(pos Position) []Move {
-	moves := make([]Move, 0, 2*14)
-	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	for rooks := pos.b[pos.ToMove][Rook]; rooks != 0; rooks = ResetLS1B(rooks) {
-		f, from := LS1B(rooks), LS1BIndex(rooks)
-		for dst := rookAttacks(f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
-			t, to := LS1B(dst), LS1BIndex(dst)
-			m := Move{From: from, To: to, Piece: Rook}
-			if t&pos.b[pos.Opp()][All] != 0 {
-				_, capturePiece := pos.PieceOn(to)
-				m.CapturePiece = capturePiece
-				m.CaptureSquare = to
-			}
-			moves = append(moves, m)
-		}
-	}
-	return moves
-}
+func RookMoves(pos Position) []Move { return pMoves(pos, Rook) }
 
 // QueenMoves returns a slice of all pseudo-legal Moves that queens can make in the current Position.
-func QueenMoves(pos Position) []Move {
-	moves := make([]Move, 0, 2*28)
-	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	for queens := pos.b[pos.ToMove][Queen]; queens != 0; queens = ResetLS1B(queens) {
-		f, from := LS1B(queens), LS1BIndex(queens)
-		for dst := queenAttacks(f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
-			t, to := LS1B(dst), LS1BIndex(dst)
-			m := Move{From: from, To: to, Piece: Queen}
-			if t&pos.b[pos.Opp()][All] != 0 {
-				_, capturePiece := pos.PieceOn(to)
-				m.CapturePiece = capturePiece
-				m.CaptureSquare = to
-			}
-			moves = append(moves, m)
-		}
-	}
-	return moves
-}
+func QueenMoves(pos Position) []Move { return pMoves(pos, Queen) }
 
 // KingMoves returns a slice of all pseudo-legal Moves that the king can make in the current Position.
 func KingMoves(pos Position) []Move {
-	moves := make([]Move, 0, 8)
-	from := LS1BIndex(pos.b[pos.ToMove][King])
-	for dst := kingAttacks[from] &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
-		t, to := LS1B(dst), LS1BIndex(dst)
-		m := Move{From: from, To: to, Piece: King}
-		if t&pos.b[pos.Opp()][All] != 0 {
-			_, capturePiece := pos.PieceOn(to)
-			m.CapturePiece = capturePiece
-			m.CaptureSquare = to
-		}
-		moves = append(moves, m)
-	}
+	moves := pMoves(pos, King)
+	from := pos.KingSquare[pos.ToMove]
 	if canQSCastle(pos) {
-		moves = append(moves, Move{From: from, To: pos.KingSquare[pos.ToMove] - 2, Piece: King})
+		moves = append(moves, Move{From: from, To: from - 2, Piece: King})
 	}
 	if canKSCastle(pos) {
-		moves = append(moves, Move{From: from, To: pos.KingSquare[pos.ToMove] + 2, Piece: King})
+		moves = append(moves, Move{From: from, To: from + 2, Piece: King})
 	}
 	return moves
 }
@@ -467,6 +384,37 @@ func canKSCastle(pos Position) bool {
 	return true
 }
 
+var (
+	kAttacks = make([]Board, 64)
+	nAttacks = make([]Board, 64)
+)
+
+func init() {
+	for s := Square(0); s < 64; s++ {
+		b := s.Board()
+		// +7 +8 +9
+		// -1  K +1
+		// -9 -8 -7
+		kAttacks[s] = southwest(b) | south(b) | southeast(b) | west(b) | east(b) | northwest(b) | north(b) | northeast(b)
+		//    +15  +17
+		//  +6        +10
+		//        N
+		// -10         -6
+		//    -17  -15
+		nAttacks[s] = southwest(south(b)) | southeast(south(b)) | southwest(west(b)) | southeast(east(b)) | northwest(west(b)) | northeast(east(b)) | northwest(north(b)) | northeast(north(b))
+	}
+}
+
+var pieceAttacks = []func(piece, empty Board) Board{
+	nil,
+	nil,
+	knightAttacks,
+	bishopAttacks,
+	rookAttacks,
+	queenAttacks,
+	kingAttacks,
+}
+
 // whitePawnAdvances returns a Board consisting of all squares to which the input white pawn can advance.
 func whitePawnAdvances(pawn, empty Board) Board {
 	return (north(north(pawn)&empty)&empty)<<32>>32 | (north(pawn) & empty)
@@ -487,6 +435,9 @@ func blackPawnAttacks(pawn, empty Board) Board {
 	return (southwest(pawn) | southeast(pawn)) &^ empty
 }
 
+// knightAttacks returns a Board consisting of all squares attacked/defended by a knight at piece.
+func knightAttacks(piece, _ Board) Board { return nAttacks[LS1BIndex(piece)] }
+
 // bishopAttacks returns a Board consisting of all squares attacked/defended by the input bishop.
 func bishopAttacks(piece, empty Board) Board {
 	return attackFill(piece, empty, southwest) | attackFill(piece, empty, southeast) | attackFill(piece, empty, northwest) | attackFill(piece, empty, northeast)
@@ -497,12 +448,15 @@ func rookAttacks(piece, empty Board) Board {
 	return attackFill(piece, empty, south) | attackFill(piece, empty, west) | attackFill(piece, empty, east) | attackFill(piece, empty, north)
 }
 
-// queenAttacks returns a Board consisting of all squares attacked/defended by the input queen.
+// queenAttacks returns a Board of all squares attacked/defended by a queen at piece when there are no pieces at empty.
 func queenAttacks(piece, empty Board) Board {
 	return rookAttacks(piece, empty) | bishopAttacks(piece, empty)
 }
 
-// IsAttacked returns whether the given Square is attacked by any piece of the given Color in the given Position.
+// kingAttacks returns a Board consisting of all squares attacked/defended by a king at piece.
+func kingAttacks(piece, _ Board) Board { return kAttacks[LS1BIndex(piece)] }
+
+// IsAttacked returns whether s is attacked by any piece of Color c in pos.
 func IsAttacked(pos Position, s Square, c Color) bool {
 	b := s.Board()
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
@@ -518,8 +472,8 @@ func IsAttacked(pos Position, s Square, c Color) bool {
 	}
 	return rookAttacks(b, empty)&(pos.b[c][Rook]|pos.b[c][Queen]) != 0 ||
 		bishopAttacks(b, empty)&(pos.b[c][Bishop]|pos.b[c][Queen]) != 0 ||
-		knightAttacks[s]&pos.b[c][Knight] != 0 ||
-		kingAttacks[s]&pos.b[c][King] != 0
+		knightAttacks(b, empty)&pos.b[c][Knight] != 0 ||
+		kingAttacks(b, empty)&pos.b[c][King] != 0
 }
 
 // attackFill returns a Board showing all of the squares attacked by the input Board in the direction represented by shift.
