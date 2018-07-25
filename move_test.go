@@ -231,38 +231,20 @@ func TestBlackPawnAdvances(t *testing.T) {
 func TestWhitePawnAttacks(t *testing.T) {
 	for _, v := range []struct {
 		input Board
-		empty Board
 		want  Board
 	}{
-		{a2.Board(), 0, b3.Board()},
-		{a2.Board(), BFile, 0},
-		{a5.Board(), 0, b6.Board()},
-		{a5.Board(), BFile, 0},
-		{a7.Board(), 0, b8.Board()},
-		{a7.Board(), BFile, 0},
-
-		{e2.Board(), 0, d3.Board() | f3.Board()},
-		{e2.Board(), DFile, f3.Board()},
-		{e2.Board(), FFile, d3.Board()},
-		{e2.Board(), DFile | FFile, 0},
-		{e5.Board(), 0, d6.Board() | f6.Board()},
-		{e5.Board(), DFile, f6.Board()},
-		{e5.Board(), FFile, d6.Board()},
-		{e5.Board(), DFile | FFile, 0},
-		{e7.Board(), 0, d8.Board() | f8.Board()},
-		{e7.Board(), DFile, f8.Board()},
-		{e7.Board(), FFile, d8.Board()},
-		{e7.Board(), DFile | FFile, 0},
-
-		{h2.Board(), 0, g3.Board()},
-		{h2.Board(), GFile, 0},
-		{h5.Board(), 0, g6.Board()},
-		{h5.Board(), GFile, 0},
-		{h7.Board(), 0, g8.Board()},
-		{h7.Board(), GFile, 0},
+		{a2.Board(), b3.Board()},
+		{a5.Board(), b6.Board()},
+		{a7.Board(), b8.Board()},
+		{e2.Board(), d3.Board() | f3.Board()},
+		{e5.Board(), d6.Board() | f6.Board()},
+		{e7.Board(), d8.Board() | f8.Board()},
+		{h2.Board(), g3.Board()},
+		{h5.Board(), g6.Board()},
+		{h7.Board(), g8.Board()},
 	} {
-		if got := whitePawnAttacks(v.input, v.empty); got != v.want {
-			t.Errorf("whitePawnAttacks(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := whitePawnAttacks(v.input, 0); got != v.want {
+			t.Errorf("whitePawnAttacks(%016x): got %016x, want %016x", v.input, got, v.want)
 		}
 	}
 }
@@ -270,38 +252,20 @@ func TestWhitePawnAttacks(t *testing.T) {
 func TestBlackPawnAttacks(t *testing.T) {
 	for _, v := range []struct {
 		input Board
-		empty Board
 		want  Board
 	}{
-		{a7.Board(), 0, b6.Board()},
-		{a7.Board(), BFile, 0},
-		{a4.Board(), 0, b3.Board()},
-		{a4.Board(), BFile, 0},
-		{a2.Board(), 0, b1.Board()},
-		{a2.Board(), BFile, 0},
-
-		{e7.Board(), 0, d6.Board() | f6.Board()},
-		{e7.Board(), DFile, f6.Board()},
-		{e7.Board(), FFile, d6.Board()},
-		{e7.Board(), DFile | FFile, 0},
-		{e4.Board(), 0, d3.Board() | f3.Board()},
-		{e4.Board(), DFile, f3.Board()},
-		{e4.Board(), FFile, d3.Board()},
-		{e4.Board(), DFile | FFile, 0},
-		{e2.Board(), 0, d1.Board() | f1.Board()},
-		{e2.Board(), DFile, f1.Board()},
-		{e2.Board(), FFile, d1.Board()},
-		{e2.Board(), DFile | FFile, 0},
-
-		{h7.Board(), 0, g6.Board()},
-		{h7.Board(), GFile, 0},
-		{h4.Board(), 0, g3.Board()},
-		{h4.Board(), GFile, 0},
-		{h2.Board(), 0, g1.Board()},
-		{h2.Board(), GFile, 0},
+		{a7.Board(), b6.Board()},
+		{a4.Board(), b3.Board()},
+		{a2.Board(), b1.Board()},
+		{e7.Board(), d6.Board() | f6.Board()},
+		{e4.Board(), d3.Board() | f3.Board()},
+		{e2.Board(), d1.Board() | f1.Board()},
+		{h7.Board(), g6.Board()},
+		{h4.Board(), g3.Board()},
+		{h2.Board(), g1.Board()},
 	} {
-		if got := blackPawnAttacks(v.input, v.empty); got != v.want {
-			t.Errorf("blackPawnAttacks(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := blackPawnAttacks(v.input, 0); got != v.want {
+			t.Errorf("blackPawnAttacks(%016x): got %016x, want %016x", v.input, got, v.want)
 		}
 	}
 }
