@@ -152,9 +152,12 @@ func TestPerft(t *testing.T) {
 			wantDepth = 3
 		}
 
-		got := make([]int, wantDepth+1)
-		negamax(context.Background(), pos, Results{}, Window{0, 0}, wantDepth, false, got)
-		got = got[1:]
+		s := Search{
+			allowCutoff: false,
+			counters:    make([]int, wantDepth+1),
+		}
+		s.negamax(context.Background(), pos, nil, Window{}, wantDepth)
+		got := s.counters[1:]
 		for i := range got {
 			if got[i] != test.want[i] {
 				t.Errorf("TestPerft(%v): got %v, want %v", test.fen, got, test.want)

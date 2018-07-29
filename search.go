@@ -36,8 +36,12 @@ func (n checkmateError) Prev() checkmateError { return n + 1 }
 // and returns the search results.
 func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 	var results Results
+	s := Search{
+		allowCutoff: true,
+		counters:    make([]int, depth+1),
+	}
 	for d := 1; d <= depth; d++ {
-		_, results, _ = negamax(ctx, pos, results, Window{-evalInf, evalInf}, d, true, make([]int, d+1))
+		_, results, _ = s.negamax(ctx, pos, results, Window{-evalInf, evalInf}, d)
 		if ctx.Err() != nil {
 			break
 		}
@@ -45,39 +49,33 @@ func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 	return results
 }
 
+type Search struct {
+	allowCutoff bool
+	counters    []int
+}
+
 // negamax recursively searches a Position to the specified depth and returns the evaluation score
 // relative to the side to move and the search results. It employs alpha-beta pruning outside of
 // the specified Window. If recommended is zero length, negamax will generate and search all legal
 // moves; if recommended moves are provided, they must all be legal, and only they will be searched.
-func negamax(ctx context.Context, pos Position, recommended Results, w Window, depth int, allowCutoff bool, counters []int) (bestScore RelScore, results Results, err error) {
-	counters[0]++
+func (s *Search) negamax(
+	ctx context.Context,
+	pos Position,
+	recommended Results,
+	w Window,
+	depth int,
+) (bestScore RelScore, results Results, err error) {
+	s.counters[len(s.counters)-1-depth]++
 
-	if len(recommended) == 0 {
-		moves := Candidates(pos) // pseudo-legal
-		recommended = make(Results, 0, len(moves))
-		for _, m := range moves {
-			if !IsLegal(Make(pos, m)) {
-				continue
-			}
-			recommended = append(recommended, Result{move: m})
-		}
-		if len(recommended) == 0 {
-			// no legal moves
-			if IsCheck(pos) {
-				return -evalInf, results, errCheckmate
-			}
-			return 0, results, errStalemate
-		}
-		if pos.HalfMove == 100 && allowCutoff {
-			// fifty-move rule
-			return 0, results, errFiftyMove
-		}
-		if depth == 0 {
-			score, err := Eval(pos)
-			return score.Rel(pos.ToMove), results, err
-		}
+	score, recommended, err := checkDone(pos, recommended)
+	if err != nil {
+		return score, nil, err
 	}
 	// Invariant: len(recommended) > 0 and recommended contains only legal moves
+	if depth == 0 {
+		score, err := Eval(pos)
+		return score.Rel(pos.ToMove), nil, err
+	}
 
 	results = recommended
 	defer func() { results.SortFor(pos.ToMove) }()
@@ -89,7 +87,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 			continue
 		}
 
-		score, cont, err := negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1, allowCutoff, counters[1:])
+		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1)
 		score *= -1
 
 		results = results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
@@ -103,7 +101,7 @@ func negamax(ctx context.Context, pos Position, recommended Results, w Window, d
 		if constrained {
 			// improved lower bound
 		}
-		if !ok && allowCutoff {
+		if !ok && s.allowCutoff {
 			break
 		}
 	}
@@ -148,6 +146,31 @@ func anyLegal(pos Position, moves []Move) bool {
 		}
 	}
 	return false
+}
+
+func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
+	if len(recommended) == 0 {
+		moves := Candidates(pos) // pseudo-legal
+		recommended = make(Results, 0, len(moves))
+		for _, m := range moves {
+			if !IsLegal(Make(pos, m)) {
+				continue
+			}
+			recommended = append(recommended, Result{move: m})
+		}
+	}
+	if len(recommended) == 0 {
+		// no legal moves
+		if IsCheck(pos) {
+			return -evalInf, nil, errCheckmate
+		}
+		return 0, nil, errStalemate
+	}
+	if pos.HalfMove == 100 {
+		// fifty-move rule
+		return 0, nil, errFiftyMove
+	}
+	return 0, recommended, nil
 }
 
 // A Result holds a searched Move along with its evaluated Score,
