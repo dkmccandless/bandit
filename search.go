@@ -207,23 +207,24 @@ type Results []Result
 // SortFor sorts rs beginning with the best move for c.
 // The sort is not guaranteed to be stable.
 func (rs Results) SortFor(c Color) {
-	if c == White {
-		// Sort first by mate condition, then by depth decreasing, and then by Score decreasing
-		sort.Slice(rs, func(i, j int) bool {
-			if less, ok := rs.mateSort(i, j); ok {
-				return less
-			}
-			return rs[i].depth > rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score > rs[j].score
-		})
-	} else {
-		// Sort first by mate condition, then by depth decreasing, and then by Score increasing
-		sort.Slice(rs, func(i, j int) bool {
-			if less, ok := rs.mateSort(i, j); ok {
-				return less
-			}
-			return rs[i].depth > rs[j].depth || rs[i].depth == rs[j].depth && rs[i].score < rs[j].score
-		})
-	}
+	// Sort first by mate condition, then by depth decreasing,
+	// then by Score increasing/decreasing for White/Black,
+	// and then by origin and destination Square increasing
+	sort.Slice(rs, func(i, j int) bool {
+		if less, ok := rs.mateSort(i, j); ok {
+			return less
+		}
+		if rs[i].depth != rs[j].depth {
+			return rs[i].depth > rs[j].depth
+		}
+		if rs[i].score != rs[j].score {
+			return (rs[i].score > rs[j].score) == (c == White)
+		}
+		if rs[i].move.From != rs[j].move.From {
+			return rs[i].move.From < rs[j].move.From
+		}
+		return rs[i].move.To < rs[j].move.To
+	})
 }
 
 // mateSort reports how two Result elements should be sorted if at least one of them leads to checkmate.
