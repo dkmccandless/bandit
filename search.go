@@ -111,6 +111,36 @@ func (s *Search) negamax(
 	return w.alpha, results, results[0].err
 }
 
+// checkDone reports whether pos represents a game-ending position.
+// If so, the RelScore and error value indicate the type of ending.
+// If not, the RelScore is 0 and the error is nil.
+// In either case, checkDone returns a Results of all legal moves in pos.
+// If recommended is not provided, checkDone generates the legal moves first.
+func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
+	if len(recommended) == 0 {
+		moves := Candidates(pos) // pseudo-legal
+		recommended = make(Results, 0, len(moves))
+		for _, m := range moves {
+			if !IsLegal(Make(pos, m)) {
+				continue
+			}
+			recommended = append(recommended, Result{move: m})
+		}
+	}
+	if len(recommended) == 0 {
+		// no legal moves
+		if IsCheck(pos) {
+			return -evalInf, nil, errCheckmate
+		}
+		return 0, nil, errStalemate
+	}
+	if pos.HalfMove == 100 {
+		// fifty-move rule
+		return 0, nil, errFiftyMove
+	}
+	return 0, recommended, nil
+}
+
 // IsPseudoLegal returns whether a Move is pseudo-legal in a Position.
 // A move is pseudo-legal if the square to be moved from contains the specified piece
 // and the piece is capable of moving to the target square if doing so would not put the king in check.
@@ -146,31 +176,6 @@ func anyLegal(pos Position, moves []Move) bool {
 		}
 	}
 	return false
-}
-
-func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
-	if len(recommended) == 0 {
-		moves := Candidates(pos) // pseudo-legal
-		recommended = make(Results, 0, len(moves))
-		for _, m := range moves {
-			if !IsLegal(Make(pos, m)) {
-				continue
-			}
-			recommended = append(recommended, Result{move: m})
-		}
-	}
-	if len(recommended) == 0 {
-		// no legal moves
-		if IsCheck(pos) {
-			return -evalInf, nil, errCheckmate
-		}
-		return 0, nil, errStalemate
-	}
-	if pos.HalfMove == 100 {
-		// fifty-move rule
-		return 0, nil, errFiftyMove
-	}
-	return 0, recommended, nil
 }
 
 // A Result holds a searched Move along with its evaluated Score,
