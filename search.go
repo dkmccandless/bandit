@@ -226,12 +226,13 @@ func (rs Results) SortFor(c Color) {
 		if rs[i].score != rs[j].score {
 			return (rs[i].score > rs[j].score) == (c == White)
 		}
-		if rs[i].move.From != rs[j].move.From {
-			return rs[i].move.From < rs[j].move.From
-		}
-		return rs[i].move.To < rs[j].move.To
+		return rs.squareSort(i, j)
 	})
 }
+
+// SortBySquares sorts rs first by the Result moves' origin Squares and then by their destination Squares,
+// and finally by promotion piece in the case of pawn promotions.
+func (rs Results) SortBySquares() { sort.Slice(rs, rs.squareSort) }
 
 // mateSort reports how two Result elements should be sorted if at least one of them leads to checkmate.
 // ok reports whether either Result contains an error of type checkmateError.
@@ -256,6 +257,19 @@ func (rs Results) mateSort(i, j int) (less bool, ok bool) {
 		return jch&1 != 0, true
 	}
 	return false, false
+}
+
+// squareSort reports how two Result elements should be sorted by their moves' origin and destination Squares,
+// and then finally by promotion piece in the case of promoting pawns.
+func (rs Results) squareSort(i, j int) bool {
+	if rs[i].move.From != rs[j].move.From {
+		return rs[i].move.From < rs[j].move.From
+	}
+	if rs[i].move.To != rs[j].move.To {
+		return rs[i].move.To < rs[j].move.To
+	}
+	// From and To are non-unique in the case of pawn promotion
+	return rs[i].move.PromotePiece < rs[j].move.PromotePiece
 }
 
 // Update looks for a Result in rs with the same Move as r and replaces it with r,
