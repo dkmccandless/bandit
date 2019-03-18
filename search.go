@@ -68,7 +68,8 @@ func (s *Search) negamax(
 	s.counters[len(s.counters)-1-depth]++
 
 	score, recommended, err := checkDone(pos, recommended)
-	if err != nil {
+	if err != nil && (s.allowCutoff || err != errInsufficient) {
+		// Do not cut off during perft in the case of insufficient material
 		return score, nil, err
 	}
 	// Invariant: len(recommended) > 0 and recommended contains only legal moves
@@ -81,7 +82,7 @@ func (s *Search) negamax(
 	defer func() { results.SortFor(pos.ToMove) }()
 
 	for _, r := range recommended {
-		if r.err != nil {
+		if r.err != nil && s.allowCutoff {
 			// The move is already known not to avoid a game-ending state; no need to search it further
 			results = results.Update(r)
 			continue
