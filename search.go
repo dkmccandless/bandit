@@ -84,14 +84,14 @@ func (s *Search) negamax(
 	for _, r := range recommended {
 		if r.err != nil && s.allowCutoff {
 			// The move is already known not to avoid a game-ending state; no need to search it further
-			results = results.Update(r)
+			results.Update(r)
 			continue
 		}
 
 		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1)
 		score *= -1
 
-		results = results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
+		results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
 
 		if depth >= 3 && ctx.Err() != nil {
 			break
@@ -272,16 +272,17 @@ func (rs Results) squareSort(i, j int) bool {
 	return rs[i].move.PromotePiece < rs[j].move.PromotePiece
 }
 
-// Update looks for a Result in rs with the same Move as r and replaces it with r,
-// or appends r if there is none, and returns the possibly updated slice.
-func (rs Results) Update(r Result) Results {
+// Update finds the Result in rs with the same Move as r and replaces it with r.
+// It panics if rs does not contain any elements with r's Move.
+func (rs Results) Update(r Result) {
 	for i := range rs {
 		if rs[i].move == r.move {
 			rs[i] = r
-			return rs
+			return
 		}
 	}
-	return append(rs, r)
+	// rs should contain all legal moves
+	panic("unreached")
 }
 
 // String returns a string representation of all Result values in r.
