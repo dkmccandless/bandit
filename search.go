@@ -77,6 +77,9 @@ func (s *Search) negamax(
 		score, err := Eval(pos)
 		return score.Rel(pos.ToMove), nil, err
 	}
+	if s.allowCutoff && deepEnough(recommended, depth) {
+		return recommended[0].score.Rel(pos.ToMove), recommended, recommended[0].err
+	}
 
 	results = recommended
 	defer func() { results.SortFor(pos.ToMove) }()
@@ -140,6 +143,18 @@ func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
 		return 0, nil, errFiftyMove
 	}
 	return 0, recommended, nil
+}
+
+// deepEnough reports whether rs stores the results of a position search to at least the specified depth.
+func deepEnough(rs Results, depth int) bool {
+	// rs is already deep enough if all non-terminal elements have been searched to at least depth-1,
+	// as long as they have been searched to non-zero depth
+	for _, r := range rs {
+		if (r.depth == 0 || r.depth < depth-1) && r.err == nil {
+			return false
+		}
+	}
+	return true
 }
 
 // IsPseudoLegal returns whether a Move is pseudo-legal in a Position.
