@@ -35,18 +35,19 @@ func (n checkmateError) Prev() checkmateError { return n + 1 }
 // SearchPosition searches a Position to the specified depth via iterative deepening
 // and returns the search results.
 func SearchPosition(ctx context.Context, pos Position, depth int) Results {
-	var results Results
+	var rs Results
 	s := Search{
 		allowCutoff: true,
 		counters:    make([]int, depth+1),
 	}
 	for d := 1; d <= depth; d++ {
-		_, results, _ = s.negamax(ctx, pos, results, Window{-evalInf, evalInf}, d)
+		_, rs, _ = s.negamax(ctx, pos, rs, Window{-evalInf, evalInf}, d)
+		_, rs, _ = s.negamax(ctx, pos, rs, Window{-evalInf, evalInf}, d)
 		if ctx.Err() != nil {
 			break
 		}
 	}
-	return results
+	return rs
 }
 
 type Search struct {
@@ -56,45 +57,44 @@ type Search struct {
 
 // negamax recursively searches a Position to the specified depth and returns the evaluation score
 // relative to the side to move and the search results. It employs alpha-beta pruning outside of
-// the specified Window. If recommended is zero length, negamax will generate and search all legal
+// the specified Window. If rs is zero length, negamax will generate and search all legal
 // moves; if recommended moves are provided, they must all be legal, and only they will be searched.
 func (s *Search) negamax(
 	ctx context.Context,
 	pos Position,
-	recommended Results,
+	rs Results,
 	w Window,
 	depth int,
 ) (bestScore RelScore, results Results, err error) {
 	s.counters[len(s.counters)-1-depth]++
 
-	score, recommended, err := checkDone(pos, recommended)
+	score, rs, err := checkDone(pos, rs)
 	if err != nil && (s.allowCutoff || err != errInsufficient) {
 		// Do not cut off during perft in the case of insufficient material
 		return score, nil, err
 	}
-	// Invariant: len(recommended) > 0 and recommended contains only legal moves
+	// Invariant: len(rs) > 0 and rs contains only legal moves
 	if depth == 0 {
 		score, err := Eval(pos)
 		return score.Rel(pos.ToMove), nil, err
 	}
-	if s.allowCutoff && deepEnough(recommended, depth) {
-		return recommended[0].score.Rel(pos.ToMove), recommended, recommended[0].err
+	if s.allowCutoff && deepEnough(rs, depth) {
+		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
 	}
 
-	results = recommended
-	defer func() { results.SortFor(pos.ToMove) }()
+	defer func() { rs.SortFor(pos.ToMove) }()
 
-	for _, r := range recommended {
+	for _, r := range rs {
 		if r.err != nil && s.allowCutoff {
 			// The move is already known not to avoid a game-ending state; no need to search it further
-			results.Update(r)
+			rs.Update(r)
 			continue
 		}
 
 		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1)
 		score *= -1
 
-		results.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
+		rs.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
 
 		if depth >= 3 && ctx.Err() != nil {
 			break
@@ -109,10 +109,10 @@ func (s *Search) negamax(
 			break
 		}
 	}
-	if err, ok := results[0].err.(checkmateError); ok {
-		return w.alpha, results, err.Prev()
+	if err, ok := rs[0].err.(checkmateError); ok {
+		return w.alpha, rs, err.Prev()
 	}
-	return w.alpha, results, results[0].err
+	return w.alpha, rs, rs[0].err
 }
 
 // checkDone reports whether pos represents a game-ending position.
