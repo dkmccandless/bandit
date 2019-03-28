@@ -26,13 +26,7 @@ func TestIsInsufficient(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		npawns := PopCount(pos.b[White][Pawn] | pos.b[Black][Pawn])
-		nknights := PopCount(pos.b[White][Knight] | pos.b[Black][Knight])
-		nbishops := PopCount(pos.b[White][Bishop] | pos.b[Black][Bishop])
-		nrooks := PopCount(pos.b[White][Rook] | pos.b[Black][Rook])
-		nqueens := PopCount(pos.b[White][Queen] | pos.b[Black][Queen])
-
-		if got := IsInsufficient(pos, npawns, nknights, nbishops, nrooks, nqueens); got != test.want {
+		if got := IsInsufficient(pos); got != test.want {
 			t.Errorf("IsInsufficient(%v): got %v, want %v", test.fen, got, test.want)
 		}
 	}

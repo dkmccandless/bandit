@@ -179,20 +179,18 @@ func init() {
 // Eval returns a Position's evaluation score in centipawns relative to White.
 // It returns errInsufficient in the case of insufficient material.
 func Eval(pos Position) (Score, error) {
+	if IsInsufficient(pos) {
+		return 0, errInsufficient
+	}
 	var (
 		npawns   = PopCount(pos.b[White][Pawn] | pos.b[Black][Pawn])
 		nknights = PopCount(pos.b[White][Knight] | pos.b[Black][Knight])
 		nbishops = PopCount(pos.b[White][Bishop] | pos.b[Black][Bishop])
 		nrooks   = PopCount(pos.b[White][Rook] | pos.b[Black][Rook])
 		nqueens  = PopCount(pos.b[White][Queen] | pos.b[Black][Queen])
+		phase    = queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
+		eval     Score
 	)
-
-	if IsInsufficient(pos, npawns, nknights, nbishops, nrooks, nqueens) {
-		return 0, errInsufficient
-	}
-
-	phase := queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
-	var eval Score
 	for sq := a1; sq <= h8; sq++ {
 		switch c, p := pos.PieceOn(sq); {
 		case p == None:
@@ -206,13 +204,18 @@ func Eval(pos Position) (Score, error) {
 	return eval, nil
 }
 
-// IsInsufficient reports whether a collection of pieces constitutes insufficient material
-// to deliver checkmate. This is a subset of the condition of impossibility of checkmate,
-// which results in an automatic draw.
-func IsInsufficient(pos Position, npawns, nknights, nbishops, nrooks, nqueens int) bool {
-	if npawns > 0 || nrooks > 0 || nqueens > 0 {
+// IsInsufficient reports whether pos contains insufficient material to deliver checkmate.
+// This is a subset of the condition of impossibility of checkmate, which results in an automatic draw.
+func IsInsufficient(pos Position) bool {
+	if pos.b[White][Pawn] != 0 || pos.b[Black][Pawn] != 0 ||
+		pos.b[White][Rook] != 0 || pos.b[Black][Rook] != 0 ||
+		pos.b[White][Queen] != 0 || pos.b[Black][Queen] != 0 {
 		return false
 	}
+	var (
+		nknights = PopCount(pos.b[White][Knight] | pos.b[Black][Knight])
+		nbishops = PopCount(pos.b[White][Bishop] | pos.b[Black][Bishop])
+	)
 	if nknights+nbishops <= 1 {
 		// KvK, KNvK, KBvK
 		return true
