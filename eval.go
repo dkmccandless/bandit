@@ -9,11 +9,11 @@ const (
 	opening = iota
 	endgame
 
-	pawnPhase   = 1
-	knightPhase = 2
-	bishopPhase = 2
-	rookPhase   = 4
-	queenPhase  = 8
+	pawnPhase = 1 << iota
+	bishopPhase
+	rookPhase
+	queenPhase
+	knightPhase = bishopPhase
 
 	totalPhase = 2 * (queenPhase + 2*rookPhase + 2*bishopPhase + 2*knightPhase + 8*pawnPhase)
 )
@@ -21,6 +21,35 @@ const (
 // errInsufficient is returned by Eval when neither player has sufficient material
 // to deliver checkmate by any sequence of legal moves.
 var errInsufficient = errors.New("insufficient material")
+
+// A Score represents the engine's evaluation of a Position in centipawns relative to White.
+type Score int
+
+// String returns a string representation of s.
+func (s Score) String() string { return fmt.Sprintf("%.2f", float64(s)/100) }
+
+// Rel returns the RelScore of s with respect to c.
+// This is equal to s for White and -s for Black.
+func (s Score) Rel(c Color) RelScore {
+	r := RelScore(s)
+	if c == Black {
+		return -r
+	}
+	return r
+}
+
+// A RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
+type RelScore int
+
+// Abs returns the Score of r relative to White, where r is with respect to c.
+// This is equal to r for White and -r for Black.
+func (r RelScore) Abs(c Color) Score {
+	s := Score(r)
+	if c == Black {
+		return -s
+	}
+	return s
+}
 
 // The static evaluation of each type of Piece.
 var pieceEval = [6][2]RelScore{
@@ -36,18 +65,9 @@ var pieceEval = [6][2]RelScore{
 // Piece-square tables modifying the evaluation of a Piece depending on its Square.
 type pieceSquare [64]RelScore
 
-func (ps pieceSquare) flip() pieceSquare {
-	var f pieceSquare
-	for rank := 0; rank < 8; rank++ {
-		for file := 0; file < 8; file++ {
-			f[8*rank+file] = ps[8*(7-rank)+file]
-		}
-	}
-	return f
-}
-
 // Values based on Tomasz Michniewski's "Unified Evaluation" test tournament tables
 var ps = [2][6]pieceSquare{
+	// Generate White tables in init
 	{},
 	{
 		{},
@@ -137,6 +157,16 @@ var kingps = [2][2]pieceSquare{
 	},
 }
 
+func (ps pieceSquare) flip() pieceSquare {
+	var f pieceSquare
+	for rank := 0; rank < 8; rank++ {
+		for file := 0; file < 8; file++ {
+			f[8*rank+file] = ps[8*(7-rank)+file]
+		}
+	}
+	return f
+}
+
 func init() {
 	for piece := range ps[Black] {
 		ps[White][piece] = ps[Black][piece].flip()
@@ -149,26 +179,19 @@ func init() {
 // Eval returns a Position's evaluation score in centipawns relative to White.
 // It returns errInsufficient in the case of insufficient material.
 func Eval(pos Position) (Score, error) {
-	wp := PopCount(pos.b[White][Pawn])
-	wn := PopCount(pos.b[White][Knight])
-	wb := PopCount(pos.b[White][Bishop])
-	wr := PopCount(pos.b[White][Rook])
-	wq := PopCount(pos.b[White][Queen])
-
-	bp := PopCount(pos.b[Black][Pawn])
-	bn := PopCount(pos.b[Black][Knight])
-	bb := PopCount(pos.b[Black][Bishop])
-	br := PopCount(pos.b[Black][Rook])
-	bq := PopCount(pos.b[Black][Queen])
-
-	npawns, nknights, nbishops, nrooks, nqueens := wp+bp, wn+bn, wb+bb, wr+br, wq+bq
+	var (
+		npawns   = PopCount(pos.b[White][Pawn] | pos.b[Black][Pawn])
+		nknights = PopCount(pos.b[White][Knight] | pos.b[Black][Knight])
+		nbishops = PopCount(pos.b[White][Bishop] | pos.b[Black][Bishop])
+		nrooks   = PopCount(pos.b[White][Rook] | pos.b[Black][Rook])
+		nqueens  = PopCount(pos.b[White][Queen] | pos.b[Black][Queen])
+	)
 
 	if IsInsufficient(pos, npawns, nknights, nbishops, nrooks, nqueens) {
 		return 0, errInsufficient
 	}
 
 	phase := queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
-
 	var eval Score
 	for sq := a1; sq <= h8; sq++ {
 		switch c, p := pos.PieceOn(sq); {
@@ -181,10 +204,6 @@ func Eval(pos Position) (Score, error) {
 		}
 	}
 	return eval, nil
-}
-
-func taper(open, end RelScore, phase int) RelScore {
-	return (open*RelScore(phase) + end*(totalPhase-RelScore(phase))) / totalPhase
 }
 
 // IsInsufficient reports whether a collection of pieces constitutes insufficient material
@@ -211,31 +230,8 @@ func IsInsufficient(pos Position, npawns, nknights, nbishops, nrooks, nqueens in
 	return false
 }
 
-// A Score represents the engine's evaluation of a Position in centipawns relative to White.
-type Score int
-
-// String returns a string representation of s.
-func (s Score) String() string { return fmt.Sprintf("%.2f", float64(s)/100) }
-
-// Rel returns the RelScore of s with respect to c.
-// This is equal to s for White and -s for Black.
-func (s Score) Rel(c Color) RelScore {
-	r := RelScore(s)
-	if c == Black {
-		return -r
-	}
-	return r
-}
-
-// A RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
-type RelScore int
-
-// Abs returns the Score of r relative to White, where r is with respect to c.
-// This is equal to r for White and -r for Black.
-func (r RelScore) Abs(c Color) Score {
-	s := Score(r)
-	if c == Black {
-		return -s
-	}
-	return s
+// taper returns the weighted sum of open and end according to the fraction phase/totalPhase.
+// This mitigates evaluation discontinuity in the event of rapid loss of material.
+func taper(open, end RelScore, phase int) RelScore {
+	return (open*RelScore(phase) + end*(totalPhase-RelScore(phase))) / totalPhase
 }

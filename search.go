@@ -18,19 +18,10 @@ var (
 	// TODO: threefold repetition
 )
 
-// A checkmateError indicates the number of plies until a forced checkmate can be delivered.
-// The zero value of type checkmateError indicates that the current position is checkmate.
-type checkmateError int
-
-func (n checkmateError) Error() string {
-	if n&1 == 0 {
-		return fmt.Sprintf("-#%d", n/2)
-	}
-	return fmt.Sprintf("#%d", (n+1)/2)
+type Search struct {
+	allowCutoff bool
+	counters    []int
 }
-
-// Prev returns the checkmateError corresponding to the previous ply.
-func (n checkmateError) Prev() checkmateError { return n + 1 }
 
 // SearchPosition searches a Position to the specified depth via iterative deepening
 // and returns the search results.
@@ -42,17 +33,11 @@ func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 	}
 	for d := 1; d <= depth; d++ {
 		_, rs, _ = s.negamax(ctx, pos, rs, Window{-evalInf, evalInf}, d)
-		_, rs, _ = s.negamax(ctx, pos, rs, Window{-evalInf, evalInf}, d)
 		if ctx.Err() != nil {
 			break
 		}
 	}
 	return rs
-}
-
-type Search struct {
-	allowCutoff bool
-	counters    []int
 }
 
 // negamax recursively searches a Position to the specified depth and returns the evaluation score
@@ -258,10 +243,13 @@ func (rs Results) mateSort(i, j int) (less bool, ok bool) {
 	jch, jok := rs[j].err.(checkmateError)
 	switch {
 	case iok && jok:
+		// Mates stored in rs as wins for the "previous player" are wins in the position being searched
 		switch iwin, jwin := ich&1 == 0, jch&1 == 0; {
 		case iwin && jwin:
+			// faster winning mate first
 			return ich < jch, true
 		case !iwin && !jwin:
+			// slower losing mate first
 			return ich > jch, true
 		default:
 			return iwin, true
@@ -308,6 +296,21 @@ func (rs Results) String() string {
 	}
 	return s
 }
+
+// A checkmateError indicates the number of plies until a forced checkmate can be delivered.
+// Odd values are wins for the player with the next move, and even values for the player with the previous move.
+// The zero value of type checkmateError indicates that the current position is checkmate.
+type checkmateError int
+
+func (n checkmateError) Error() string {
+	if n&1 == 0 {
+		return fmt.Sprintf("-#%d", n/2)
+	}
+	return fmt.Sprintf("#%d", (n+1)/2)
+}
+
+// Prev returns the checkmateError corresponding to the previous ply.
+func (n checkmateError) Prev() checkmateError { return n + 1 }
 
 // A Window represents the bounds of a position's evaluation.
 type Window struct{ alpha, beta RelScore }
