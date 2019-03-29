@@ -5,11 +5,7 @@ import "testing"
 const aroundD4 = (CFile|DFile|EFile)&(Rank3|Rank4|Rank5) ^ (DFile & Rank4)
 
 func TestSouthAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), 0},
 		{h1.Board(), ^h1.Board(), 0},
 		{a8.Board(), ^a8.Board(), AFile ^ a8.Board()},
@@ -17,18 +13,14 @@ func TestSouthAttacks(t *testing.T) {
 		{d4.Board(), 0, d3.Board()},
 		{d4.Board(), aroundD4, d3.Board() | d2.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, south); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, south): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, south); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, south): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestWestAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), 0},
 		{h1.Board(), ^h1.Board(), Rank1 ^ h1.Board()},
 		{a8.Board(), ^a8.Board(), 0},
@@ -36,18 +28,14 @@ func TestWestAttacks(t *testing.T) {
 		{d4.Board(), 0, c4.Board()},
 		{d4.Board(), aroundD4, c4.Board() | b4.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, west); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, west): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, west); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, west): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestEastAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), Rank1 ^ a1.Board()},
 		{h1.Board(), ^h1.Board(), 0},
 		{a8.Board(), ^a8.Board(), Rank8 ^ a8.Board()},
@@ -55,18 +43,14 @@ func TestEastAttacks(t *testing.T) {
 		{d4.Board(), 0, e4.Board()},
 		{d4.Board(), aroundD4, e4.Board() | f4.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, east); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, east): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, east); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, east): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestNorthAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), AFile ^ a1.Board()},
 		{h1.Board(), ^h1.Board(), HFile ^ h1.Board()},
 		{a8.Board(), ^a8.Board(), 0},
@@ -74,18 +58,14 @@ func TestNorthAttacks(t *testing.T) {
 		{d4.Board(), 0, d5.Board()},
 		{d4.Board(), aroundD4, d5.Board() | d6.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, north); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, north): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, north); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, north): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestSouthwestAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), 0},
 		{h1.Board(), ^h1.Board(), 0},
 		{a8.Board(), ^a8.Board(), 0},
@@ -93,18 +73,14 @@ func TestSouthwestAttacks(t *testing.T) {
 		{d4.Board(), 0, c3.Board()},
 		{d4.Board(), aroundD4, c3.Board() | b2.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, southwest); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, southwest): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, southwest); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, southwest): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestSoutheastAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), 0},
 		{h1.Board(), ^h1.Board(), 0},
 		{a8.Board(), ^a8.Board(), LongAntiDiagonal ^ a8.Board()},
@@ -112,18 +88,14 @@ func TestSoutheastAttacks(t *testing.T) {
 		{d4.Board(), 0, e3.Board()},
 		{d4.Board(), aroundD4, e3.Board() | f2.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, southeast); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, southeast): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, southeast); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, southeast): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestNorthwestAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), 0},
 		{h1.Board(), ^h1.Board(), LongAntiDiagonal ^ h1.Board()},
 		{a8.Board(), ^a8.Board(), 0},
@@ -131,18 +103,14 @@ func TestNorthwestAttacks(t *testing.T) {
 		{d4.Board(), 0, c5.Board()},
 		{d4.Board(), aroundD4, c5.Board() | b6.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, northwest); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, northwest): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, northwest); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, northwest): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestNortheastAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), LongDiagonal ^ a1.Board()},
 		{h1.Board(), ^h1.Board(), 0},
 		{a8.Board(), ^a8.Board(), 0},
@@ -150,18 +118,14 @@ func TestNortheastAttacks(t *testing.T) {
 		{d4.Board(), 0, e5.Board()},
 		{d4.Board(), aroundD4, e5.Board() | f6.Board()},
 	} {
-		if got := attackFill(v.input, v.empty, northeast); got != v.want {
-			t.Errorf("attackFill(%016x, %016x, northeast): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := attackFill(test.input, test.empty, northeast); got != test.want {
+			t.Errorf("attackFill(%016x, %016x, northeast): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestWhitePawnAdvances(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a2.Board(), ^a2.Board(), a3.Board() | a4.Board()},
 		{a2.Board(), ^(a2.Board() | a4.Board()), a3.Board()},
 		{a2.Board(), ^(a2.Board() | a3.Board()), 0},
@@ -186,18 +150,14 @@ func TestWhitePawnAdvances(t *testing.T) {
 		{h7.Board(), ^h7.Board(), h8.Board()},
 		{h7.Board(), ^(h7.Board() | h8.Board()), 0},
 	} {
-		if got := whitePawnAdvances(v.input, v.empty); got != v.want {
-			t.Errorf("whitePawnAdvances(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := whitePawnAdvances(test.input, test.empty); got != test.want {
+			t.Errorf("whitePawnAdvances(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestBlackPawnAdvances(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a7.Board(), ^a7.Board(), a6.Board() | a5.Board()},
 		{a7.Board(), ^(a7.Board() | a5.Board()), a6.Board()},
 		{a7.Board(), ^(a7.Board() | a6.Board()), 0},
@@ -222,17 +182,14 @@ func TestBlackPawnAdvances(t *testing.T) {
 		{h2.Board(), ^h2.Board(), h1.Board()},
 		{h2.Board(), ^(h2.Board() | h1.Board()), 0},
 	} {
-		if got := blackPawnAdvances(v.input, v.empty); got != v.want {
-			t.Errorf("blackPawnAdvances(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := blackPawnAdvances(test.input, test.empty); got != test.want {
+			t.Errorf("blackPawnAdvances(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestWhitePawnAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, want Board }{
 		{a2.Board(), b3.Board()},
 		{a5.Board(), b6.Board()},
 		{a7.Board(), b8.Board()},
@@ -243,17 +200,14 @@ func TestWhitePawnAttacks(t *testing.T) {
 		{h5.Board(), g6.Board()},
 		{h7.Board(), g8.Board()},
 	} {
-		if got := whitePawnAttacks(v.input, 0); got != v.want {
-			t.Errorf("whitePawnAttacks(%016x): got %016x, want %016x", v.input, got, v.want)
+		if got := whitePawnAttacks(test.input, 0); got != test.want {
+			t.Errorf("whitePawnAttacks(%016x): got %016x, want %016x", test.input, got, test.want)
 		}
 	}
 }
 
 func TestBlackPawnAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, want Board }{
 		{a7.Board(), b6.Board()},
 		{a4.Board(), b3.Board()},
 		{a2.Board(), b1.Board()},
@@ -264,67 +218,55 @@ func TestBlackPawnAttacks(t *testing.T) {
 		{h4.Board(), g3.Board()},
 		{h2.Board(), g1.Board()},
 	} {
-		if got := blackPawnAttacks(v.input, 0); got != v.want {
-			t.Errorf("blackPawnAttacks(%016x): got %016x, want %016x", v.input, got, v.want)
+		if got := blackPawnAttacks(test.input, 0); got != test.want {
+			t.Errorf("blackPawnAttacks(%016x): got %016x, want %016x", test.input, got, test.want)
 		}
 	}
 }
 
 func TestBishopAttacks(t *testing.T) {
 	var ld, la = LongDiagonal, LongAntiDiagonal
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), LongDiagonal ^ a1.Board()},
-		{e7.Board(), ^e7.Board(), (ld<<16 | la<<24) ^ e7.Board()},
+		{e7.Board(), ^e7.Board(), north(north(ld)) | north(north(north(la))) ^ e7.Board()},
 		{d4.Board(), 0, c3.Board() | e3.Board() | c5.Board() | e5.Board()},
 		{d4.Board(), aroundD4, b2.Board() | f2.Board() | c3.Board() | e3.Board() | c5.Board() | e5.Board() | b6.Board() | f6.Board()},
 	} {
-		if got := bishopAttacks(v.input, v.empty); got != v.want {
-			t.Errorf("bishopAttacks(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := bishopAttacks(test.input, test.empty); got != test.want {
+			t.Errorf("bishopAttacks(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestRookAttacks(t *testing.T) {
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), (AFile | Rank1) ^ a1.Board()},
 		{e7.Board(), ^e7.Board(), (EFile | Rank7) ^ e7.Board()},
 		{d4.Board(), 0, d3.Board() | c4.Board() | e4.Board() | d5.Board()},
 		{d4.Board(), aroundD4, d2.Board() | d3.Board() | b4.Board() | c4.Board() | e4.Board() | f4.Board() | d5.Board() | d6.Board()},
 	} {
-		if got := rookAttacks(v.input, v.empty); got != v.want {
-			t.Errorf("rookAttacks(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := rookAttacks(test.input, test.empty); got != test.want {
+			t.Errorf("rookAttacks(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestQueenAttacks(t *testing.T) {
 	var ld, la = LongDiagonal, LongAntiDiagonal
-	for _, v := range []struct {
-		input Board
-		empty Board
-		want  Board
-	}{
+	for _, test := range []struct{ input, empty, want Board }{
 		{a1.Board(), ^a1.Board(), (AFile | Rank1 | LongDiagonal) ^ a1.Board()},
-		{e7.Board(), ^e7.Board(), (EFile | Rank7 | ld<<16 | la<<24) ^ e7.Board()},
+		{e7.Board(), ^e7.Board(), EFile | Rank7 | north(north(ld)) | north(north(north(la))) ^ e7.Board()},
 		{d4.Board(), 0, aroundD4},
 		{d4.Board(), aroundD4, aroundD4 | b2.Board() | d2.Board() | f2.Board() | b4.Board() | f4.Board() | b6.Board() | d6.Board() | f6.Board()},
 	} {
-		if got := queenAttacks(v.input, v.empty); got != v.want {
-			t.Errorf("queenAttacks(%016x, %016x): got %016x, want %016x", v.input, v.empty, got, v.want)
+		if got := queenAttacks(test.input, test.empty); got != test.want {
+			t.Errorf("queenAttacks(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
 		}
 	}
 }
 
 func TestIsAttacked(t *testing.T) {
-	for _, v := range []struct {
+	for _, test := range []struct {
 		pos  Position
 		s    Square
 		c    Color
@@ -341,8 +283,8 @@ func TestIsAttacked(t *testing.T) {
 		{InitialPosition, f8, White, false},
 		{InitialPosition, h8, Black, false},
 	} {
-		if got := IsAttacked(v.pos, v.s, v.c); got != v.want {
-			t.Errorf("IsAttacked(%v, %v, %v): got %v, want %v", v.pos, v.s, v.c, got, v.want)
+		if got := IsAttacked(test.pos, test.s, test.c); got != test.want {
+			t.Errorf("IsAttacked(%v, %v, %v): got %v, want %v", test.pos, test.s, test.c, got, test.want)
 		}
 	}
 }
@@ -514,12 +456,12 @@ func BenchmarkMake(b *testing.B) {
 	}
 }
 
-func BenchmarkCandidates(b *testing.B) {
+func BenchmarkPseudoLegalMoves(b *testing.B) {
 	pos, err := ParseFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
 	if err != nil {
 		b.Fatal(err)
 	}
 	for i := 0; i < b.N; i++ {
-		_ = Candidates(pos)
+		_ = PseudoLegalMoves(pos)
 	}
 }

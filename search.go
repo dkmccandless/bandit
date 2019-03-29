@@ -107,7 +107,7 @@ func (s *Search) negamax(
 // If recommended is not provided, checkDone generates the legal moves first.
 func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
 	if len(recommended) == 0 {
-		moves := Candidates(pos) // pseudo-legal
+		moves := PseudoLegalMoves(pos)
 		recommended = make(Results, 0, len(moves))
 		for _, m := range moves {
 			if !IsLegal(Make(pos, m)) {
@@ -167,7 +167,7 @@ func IsCheck(pos Position) bool {
 
 // IsTerminal returns whether or not a Position is checkmate or stalemate.
 // A position is checkmate or stalemate if the side to move has no legal moves.
-func IsTerminal(pos Position) bool { return !anyLegal(pos, Candidates(pos)) }
+func IsTerminal(pos Position) bool { return !anyLegal(pos, PseudoLegalMoves(pos)) }
 
 // anyLegal returns whether any of the given Moves are legal in the given Position.
 func anyLegal(pos Position, moves []Move) bool {

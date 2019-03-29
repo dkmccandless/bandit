@@ -12,25 +12,25 @@ type Move struct {
 	PromotePiece  Piece  // the Piece being promoted to, or else None
 }
 
-// IsCapture returns whether the Move is a capture.
+// IsCapture reports whether m is a capture.
 func (m Move) IsCapture() bool { return m.CapturePiece != None }
 
-// IsPromotion returns whether the Move promotes a pawn.
+// IsPromotion reports whether m promotes a pawn.
 func (m Move) IsPromotion() bool { return m.PromotePiece != None }
 
-// IsDouble returns whether the Move is an initial pawn push.
+// IsDouble reports whether m is an initial pawn push.
 func (m Move) IsDouble() bool {
 	return m.Piece == Pawn && ((m.From.Rank() == 1 && m.To.Rank() == 3) || m.From.Rank() == 6 && m.To.Rank() == 4)
 }
 
-// IsQSCastle returns whether the Move castles queenside.
+// IsQSCastle reports whether m castles queenside.
 func (m Move) IsQSCastle() bool { return m.Piece == King && m.From-m.To == 2 }
 
-// IsQSCastle returns whether the Move castles kingside.
+// IsKSCastle reports whether m castles kingside.
 func (m Move) IsKSCastle() bool { return m.Piece == King && m.To-m.From == 2 }
 
-// Make applies a Move to a Position and returns the resulting Position.
-// Behavior is undefined when the Move is illegal in the Position.
+// Make applies m to pos and reports the resulting Position.
+// Behavior is undefined when m is illegal in pos.
 func Make(pos Position, m Move) Position {
 	// update changes pos.z and the Boards of c when a Piece of type p moves to or from s
 	update := func(c Color, p Piece, s Square) {
@@ -146,15 +146,15 @@ func Make(pos Position, m Move) Position {
 	return pos
 }
 
-// Candidates returns a slice of all pseudo-legal Moves in the current Position.
-func Candidates(pos Position) []Move {
-	can := make([]Move, 0, 100)
-	can = append(can, PawnMoves(pos)...)
-	can = append(can, KnightMoves(pos)...)
-	can = append(can, BishopMoves(pos)...)
-	can = append(can, RookMoves(pos)...)
-	can = append(can, QueenMoves(pos)...)
-	can = append(can, KingMoves(pos)...)
+// PseudoLegalMoves returns a slice of all pseudo-legal Moves in pos.
+func PseudoLegalMoves(pos Position) []Move {
+	moves := make([]Move, 0, 100)
+	moves = append(moves, PawnMoves(pos)...)
+	moves = append(moves, KnightMoves(pos)...)
+	moves = append(moves, BishopMoves(pos)...)
+	moves = append(moves, RookMoves(pos)...)
+	moves = append(moves, QueenMoves(pos)...)
+	moves = append(moves, KingMoves(pos)...)
 
 	// Counting sort into the order winning captures, equal captures, losing captures, non-captures.
 	// (This terminology anticipates that the captured piece is defended and the capturing piece is liable to be captured in exchange.)
@@ -164,20 +164,23 @@ func Candidates(pos Position) []Move {
 		losing
 		noncapture
 	)
-	bins := make([]int, 4)
-	for _, m := range can {
-		var moveType int
+	moveType := func(m Move) int {
 		switch {
 		case !m.IsCapture():
-			moveType = noncapture
-		case m.Piece == m.CapturePiece || (m.Piece == Bishop && m.CapturePiece == Knight) || (m.Piece == Knight && m.CapturePiece == Bishop):
-			moveType = equal
+			return noncapture
+		case m.Piece == m.CapturePiece ||
+			(m.Piece == Bishop && m.CapturePiece == Knight) ||
+			(m.Piece == Knight && m.CapturePiece == Bishop):
+			return equal
 		case m.Piece < m.CapturePiece:
-			moveType = winning
-		case m.Piece > m.CapturePiece:
-			moveType = losing
+			return winning
+		default:
+			return losing
 		}
-		bins[moveType]++
+	}
+	bins := make([]int, 4)
+	for _, m := range moves {
+		bins[moveType(m)]++
 	}
 	index := make([]int, len(bins))
 	for i := range index {
@@ -185,21 +188,11 @@ func Candidates(pos Position) []Move {
 			index[i] += bins[j]
 		}
 	}
-	sorted := make([]Move, len(can))
-	for _, m := range can {
-		var moveType int
-		switch {
-		case !m.IsCapture():
-			moveType = noncapture
-		case m.Piece == m.CapturePiece || (m.Piece == Bishop && m.CapturePiece == Knight) || (m.Piece == Knight && m.CapturePiece == Bishop):
-			moveType = equal
-		case m.Piece < m.CapturePiece:
-			moveType = winning
-		case m.Piece > m.CapturePiece:
-			moveType = losing
-		}
-		sorted[index[moveType]] = m
-		index[moveType]++
+	sorted := make([]Move, len(moves))
+	for _, m := range moves {
+		mt := moveType(m)
+		sorted[index[mt]] = m
+		index[mt]++
 	}
 	return sorted
 }
@@ -214,6 +207,14 @@ var PieceMoves = []func(Position) []Move{
 	KingMoves,
 }
 
+// rangeBits applies f sequentially to each set bit in board.
+func rangeBits(board Board, f func(Board, Square)) {
+	for bits := board; bits != 0; bits = ResetLS1B(bits) {
+		b, s := LS1B(bits), LS1BIndex(bits)
+		f(b, s)
+	}
+}
+
 // PawnMoves returns a slice of all pseudo-legal Moves that pawns can make in pos.
 func PawnMoves(pos Position) []Move {
 	moves := make([]Move, 0, 8*2*4) // cap: all pawns are on the 7th rank and can promote via capture to either side
@@ -224,54 +225,38 @@ func PawnMoves(pos Position) []Move {
 	var promoteRank byte
 	switch pos.ToMove {
 	case White:
-		pawnAdv = whitePawnAdvances
-		pawnAtk = whitePawnAttacks
-		promoteRank = 7
+		pawnAdv, pawnAtk, promoteRank = whitePawnAdvances, whitePawnAttacks, 7
 	case Black:
-		pawnAdv = blackPawnAdvances
-		pawnAtk = blackPawnAttacks
-		promoteRank = 0
+		pawnAdv, pawnAtk, promoteRank = blackPawnAdvances, blackPawnAttacks, 0
 	}
-	for pawns := pos.b[pos.ToMove][Pawn]; pawns != 0; pawns = ResetLS1B(pawns) {
-		f, from := LS1B(pawns), LS1BIndex(pawns)
-		for dst := pawnAdv(f, empty); dst != 0; dst = ResetLS1B(dst) {
-			to := LS1BIndex(dst)
-			m := Move{From: from, To: to, Piece: Pawn}
+	rangeBits(pos.b[pos.ToMove][Pawn], func(f Board, from Square) {
+		rangeBits(pawnAdv(f, empty), func(_ Board, to Square) {
 			if to.Rank() == promoteRank {
-				m.PromotePiece = Queen
-				moves = append(moves, m)
-				m.PromotePiece = Rook
-				moves = append(moves, m)
-				m.PromotePiece = Bishop
-				moves = append(moves, m)
-				m.PromotePiece = Knight
+				for _, pp := range []Piece{Queen, Rook, Bishop, Knight} {
+					moves = append(moves, Move{From: from, To: to, Piece: Pawn, PromotePiece: pp})
+				}
+				return
 			}
-			moves = append(moves, m)
-		}
-		for dst := pawnAtk(f, empty) & pos.b[pos.Opp()][All]; dst != 0; dst = ResetLS1B(dst) {
-			to := LS1BIndex(dst)
+			moves = append(moves, Move{From: from, To: to, Piece: Pawn})
+		})
+		rangeBits(pawnAtk(f, empty)&pos.b[pos.Opp()][All], func(_ Board, to Square) {
 			_, cp := pos.PieceOn(to)
-			m := Move{From: from, To: to, Piece: Pawn, CapturePiece: cp, CaptureSquare: to}
 			if to.Rank() == promoteRank {
-				m.PromotePiece = Queen
-				moves = append(moves, m)
-				m.PromotePiece = Rook
-				moves = append(moves, m)
-				m.PromotePiece = Bishop
-				moves = append(moves, m)
-				m.PromotePiece = Knight
+				for _, pp := range []Piece{Queen, Rook, Bishop, Knight} {
+					moves = append(moves, Move{From: from, To: to, Piece: Pawn, CapturePiece: cp, CaptureSquare: to, PromotePiece: pp})
+				}
+				return
 			}
-			moves = append(moves, m)
-		}
-	}
+			moves = append(moves, Move{From: from, To: to, Piece: Pawn, CapturePiece: cp, CaptureSquare: to})
+		})
+	})
 	if pos.ep != 0 {
 		// Double pawn push occurred on the previous move
 		epcs := pos.ep ^ 8
 		epSources := west(epcs.Board()) | east(epcs.Board())
-		for src := epSources & pos.b[pos.ToMove][Pawn]; src != 0; src = ResetLS1B(src) {
-			from := LS1BIndex(src)
-			moves = append(moves, Move{From: from, To: pos.ep, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: epcs})
-		}
+		rangeBits(epSources&pos.b[pos.ToMove][Pawn], func(_ Board, s Square) {
+			moves = append(moves, Move{From: s, To: pos.ep, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: epcs})
+		})
 	}
 	return moves
 }
@@ -301,7 +286,7 @@ func KingMoves(pos Position) []Move {
 	return moves
 }
 
-// canQSCastle returns whether castling queenside is pseudo-legal in pos.
+// canQSCastle returns whether castling queenside is legal in pos.
 func canQSCastle(pos Position) bool {
 	if !pos.QSCastle[pos.ToMove] {
 		return false
@@ -310,15 +295,17 @@ func canQSCastle(pos Position) bool {
 	if QSCastleEmptySquares[pos.ToMove]&^empty != 0 {
 		return false
 	}
-	for dst := QSCastleKingSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
-		if IsAttacked(pos, LS1BIndex(dst), pos.Opp()) {
-			return false
+	var attacked bool
+	rangeBits(QSCastleKingSquares[pos.ToMove], func(_ Board, s Square) {
+		if attacked {
+			return
 		}
-	}
-	return true
+		attacked = IsAttacked(pos, s, pos.Opp())
+	})
+	return !attacked
 }
 
-// canKSCastle returns whether castling kingside is pseudo-legal in pos.
+// canKSCastle returns whether castling kingside is legal in pos.
 func canKSCastle(pos Position) bool {
 	if !pos.KSCastle[pos.ToMove] {
 		return false
@@ -327,22 +314,22 @@ func canKSCastle(pos Position) bool {
 	if KSCastleEmptySquares[pos.ToMove]&^empty != 0 {
 		return false
 	}
-	for dst := KSCastleKingSquares[pos.ToMove]; dst != 0; dst = ResetLS1B(dst) {
-		if IsAttacked(pos, LS1BIndex(dst), pos.Opp()) {
-			return false
+	var attacked bool
+	rangeBits(KSCastleKingSquares[pos.ToMove], func(_ Board, s Square) {
+		if attacked {
+			return
 		}
-	}
-	return true
+		attacked = IsAttacked(pos, s, pos.Opp())
+	})
+	return !attacked
 }
 
-// pMoves returns a slice of all pseudo-legal Moves that non-pawn pieces of type p can make in pos.
+// pMoves returns a slice of all pseudo-legal Moves that non-pawn pieces of type p can make in pos, excluding castling.
 func pMoves(pos Position, p Piece) []Move {
 	moves := make([]Move, 0, 28) // two bishops, two rooks, or one queen can have 28 moves
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	for pieces := pos.b[pos.ToMove][p]; pieces != 0; pieces = ResetLS1B(pieces) {
-		f, from := LS1B(pieces), LS1BIndex(pieces)
-		for dst := pieceAttacks[p](f, empty) &^ pos.b[pos.ToMove][All]; dst != 0; dst = ResetLS1B(dst) {
-			t, to := LS1B(dst), LS1BIndex(dst)
+	rangeBits(pos.b[pos.ToMove][p], func(f Board, from Square) {
+		rangeBits(pieceAttacks[p](f, empty)&^pos.b[pos.ToMove][All], func(t Board, to Square) {
 			m := Move{From: from, To: to, Piece: p}
 			if t&pos.b[pos.Opp()][All] != 0 {
 				_, capturePiece := pos.PieceOn(to)
@@ -350,8 +337,8 @@ func pMoves(pos Position, p Piece) []Move {
 				m.CaptureSquare = to
 			}
 			moves = append(moves, m)
-		}
-	}
+		})
+	})
 	return moves
 }
 
@@ -386,35 +373,35 @@ var pieceAttacks = []func(piece, empty Board) Board{
 	kingAttacks,
 }
 
-// whitePawnAdvances returns a Board consisting of all squares to which a white pawn at p can advance when there are no pieces at empty.
+// whitePawnAdvances returns a Board of all squares to which a white pawn at p can advance when there are no pieces at empty.
 func whitePawnAdvances(p, empty Board) Board {
 	return (north(north(p)&empty)&empty)<<32>>32 | (north(p) & empty)
 }
 
-// blackPawnAdvances returns a Board consisting of all squares to which a black pawn at p can advance when there are no pieces at empty.
+// blackPawnAdvances returns a Board of all squares to which a black pawn at p can advance when there are no pieces at empty.
 func blackPawnAdvances(p, empty Board) Board {
 	return (south(south(p)&empty)&empty)>>32<<32 | (south(p) & empty)
 }
 
-// whitePawnAttacks returns a Board consisting of all squares attacked by a white pawn at p.
+// whitePawnAttacks returns a Board of all squares attacked by a white pawn at p.
 func whitePawnAttacks(p, _ Board) Board {
 	return northwest(p) | northeast(p)
 }
 
-// blackPawnAttacks returns a Board consisting of all squares attacked by a black pawn at p.
+// blackPawnAttacks returns a Board of all squares attacked by a black pawn at p.
 func blackPawnAttacks(p, _ Board) Board {
 	return southwest(p) | southeast(p)
 }
 
-// knightAttacks returns a Board consisting of all squares attacked by a knight at p.
+// knightAttacks returns a Board of all squares attacked by a knight at p.
 func knightAttacks(p, _ Board) Board { return nAttacks[LS1BIndex(p)] }
 
-// bishopAttacks returns a Board consisting of all squares attacked by a bishop at p when there are no pieces at empty.
+// bishopAttacks returns a Board of all squares attacked by a bishop at p when there are no pieces at empty.
 func bishopAttacks(p, empty Board) Board {
 	return attackFill(p, empty, southwest) | attackFill(p, empty, southeast) | attackFill(p, empty, northwest) | attackFill(p, empty, northeast)
 }
 
-// rookAttacks returns a Board consisting of all squares attacked by a rook at p when there are no pieces at empty.
+// rookAttacks returns a Board of all squares attacked by a rook at p when there are no pieces at empty.
 func rookAttacks(p, empty Board) Board {
 	return attackFill(p, empty, south) | attackFill(p, empty, west) | attackFill(p, empty, east) | attackFill(p, empty, north)
 }
@@ -424,7 +411,7 @@ func queenAttacks(p, empty Board) Board {
 	return rookAttacks(p, empty) | bishopAttacks(p, empty)
 }
 
-// kingAttacks returns a Board consisting of all squares attacked by a king at p.
+// kingAttacks returns a Board of all squares attacked by a king at p.
 func kingAttacks(p, _ Board) Board { return kAttacks[LS1BIndex(p)] }
 
 // IsAttacked returns whether s is attacked by any piece of Color c in pos.
