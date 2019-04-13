@@ -214,7 +214,7 @@ type Results []Result
 // The sort is not guaranteed to be stable.
 func (rs Results) SortFor(c Color) {
 	// Sort first by mate condition, then by depth decreasing,
-	// then by Score increasing/decreasing for White/Black,
+	// then by Score decreasing/increasing for White/Black,
 	// and then by origin and destination Square increasing
 	sort.Slice(rs, func(i, j int) bool {
 		if less, ok := rs.mateSort(i, j); ok {
