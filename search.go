@@ -64,15 +64,15 @@ func (s *Search) negamax(
 		return score.Rel(pos.ToMove), rs, err
 	}
 	if s.allowCutoff && deepEnough(rs, depth) {
+		if err, ok := rs[0].err.(checkmateError); ok {
+			return rs[0].score.Rel(pos.ToMove), rs, err.Prev()
+		}
 		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
 	}
-
-	defer func() { rs.SortFor(pos.ToMove) }()
 
 	for _, r := range rs {
 		if r.err != nil && s.allowCutoff {
 			// The move is already known not to avoid a game-ending state; no need to search it further
-			rs.Update(r)
 			continue
 		}
 
@@ -94,9 +94,7 @@ func (s *Search) negamax(
 			break
 		}
 	}
-	if err, ok := rs[0].err.(checkmateError); ok {
-		return w.alpha, rs, err.Prev()
-	}
+	rs.SortFor(pos.ToMove)
 	return w.alpha, rs, rs[0].err
 }
 
@@ -104,19 +102,19 @@ func (s *Search) negamax(
 // If so, the RelScore and error value indicate the type of ending.
 // If not, the RelScore is 0 and the error is nil.
 // In either case, checkDone returns a Results of all legal moves in pos.
-// If recommended is not provided, checkDone generates the legal moves first.
-func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
-	if len(recommended) == 0 {
+// If rs is not provided, checkDone generates the legal moves first.
+func checkDone(pos Position, rs Results) (RelScore, Results, error) {
+	if len(rs) == 0 {
 		moves := PseudoLegalMoves(pos)
-		recommended = make(Results, 0, len(moves))
+		rs = make(Results, 0, len(moves))
 		for _, m := range moves {
 			if !IsLegal(Make(pos, m)) {
 				continue
 			}
-			recommended = append(recommended, Result{move: m})
+			rs = append(rs, Result{move: m})
 		}
 	}
-	if len(recommended) == 0 {
+	if len(rs) == 0 {
 		// no legal moves
 		if IsCheck(pos) {
 			return -evalInf, rs, errCheckmate
@@ -127,7 +125,7 @@ func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
 		// fifty-move rule
 		return 0, rs, errFiftyMove
 	}
-	return 0, recommended, nil
+	return 0, rs, nil
 }
 
 // deepEnough reports whether rs stores the results of a position search to at least the specified depth.
