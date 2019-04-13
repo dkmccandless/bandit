@@ -56,12 +56,12 @@ func (s *Search) negamax(
 	score, rs, err := checkDone(pos, rs)
 	if err != nil && (s.allowCutoff || err != errInsufficient) {
 		// Do not cut off during perft in the case of insufficient material
-		return score, nil, err
+		return score, rs, err
 	}
 	// Invariant: len(rs) > 0 and rs contains only legal moves
 	if depth == 0 {
 		score, err := Eval(pos)
-		return score.Rel(pos.ToMove), nil, err
+		return score.Rel(pos.ToMove), rs, err
 	}
 	if s.allowCutoff && deepEnough(rs, depth) {
 		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
@@ -119,13 +119,13 @@ func checkDone(pos Position, recommended Results) (RelScore, Results, error) {
 	if len(recommended) == 0 {
 		// no legal moves
 		if IsCheck(pos) {
-			return -evalInf, nil, errCheckmate
+			return -evalInf, rs, errCheckmate
 		}
-		return 0, nil, errStalemate
+		return 0, rs, errStalemate
 	}
 	if pos.HalfMove == 100 {
 		// fifty-move rule
-		return 0, nil, errFiftyMove
+		return 0, rs, errFiftyMove
 	}
 	return 0, recommended, nil
 }
