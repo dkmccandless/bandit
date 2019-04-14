@@ -64,9 +64,6 @@ func (s *Search) negamax(
 		return score.Rel(pos.ToMove), rs, err
 	}
 	if s.allowCutoff && deepEnough(rs, depth) {
-		if err, ok := rs[0].err.(checkmateError); ok {
-			return rs[0].score.Rel(pos.ToMove), rs, err.Prev()
-		}
 		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
 	}
 
@@ -78,6 +75,9 @@ func (s *Search) negamax(
 
 		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1)
 		score *= -1
+		if e, ok := err.(checkmateError); ok {
+			err = e.Prev()
+		}
 
 		rs.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
 
@@ -241,8 +241,7 @@ func (rs Results) mateSort(i, j int) (less bool, ok bool) {
 	jch, jok := rs[j].err.(checkmateError)
 	switch {
 	case iok && jok:
-		// Mates stored in rs as wins for the "previous player" are wins in the position being searched
-		switch iwin, jwin := ich&1 == 0, jch&1 == 0; {
+		switch iwin, jwin := ich&1 != 0, jch&1 != 0; {
 		case iwin && jwin:
 			// faster winning mate first
 			return ich < jch, true
@@ -253,9 +252,9 @@ func (rs Results) mateSort(i, j int) (less bool, ok bool) {
 			return iwin, true
 		}
 	case iok:
-		return ich&1 == 0, true
+		return ich&1 != 0, true
 	case jok:
-		return jch&1 != 0, true
+		return jch&1 == 0, true
 	}
 	return false, false
 }

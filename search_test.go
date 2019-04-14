@@ -159,17 +159,17 @@ func TestMateSort(t *testing.T) {
 	// so that rs[i] should sort before rs[j] precisely when i < j,
 	// provided that at least one of them contains a checkmateError.
 	var rs = Results{
-		Result{err: checkmateError(0)},
-		Result{err: checkmateError(4)},
-		Result{err: checkmateError(14)},
+		Result{err: checkmateError(1)},
+		Result{err: checkmateError(5)},
+		Result{err: checkmateError(15)},
 		Result{score: 100},
 		Result{err: errStalemate},
 		Result{err: errInsufficient},
 		Result{err: errFiftyMove},
 		Result{score: -100},
-		Result{err: checkmateError(15)},
-		Result{err: checkmateError(5)},
-		Result{err: checkmateError(1)},
+		Result{err: checkmateError(14)},
+		Result{err: checkmateError(4)},
+		Result{err: checkmateError(0)},
 	}
 	for i := range rs {
 		for j := i + 1; j < len(rs); j++ {
