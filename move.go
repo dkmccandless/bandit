@@ -146,7 +146,7 @@ func Make(pos Position, m Move) Position {
 	return pos
 }
 
-// PseudoLegalMoves returns a slice of all pseudo-legal Moves in pos.
+// PseudoLegalMoves returns all pseudo-legal Moves in pos.
 func PseudoLegalMoves(pos Position) []Move {
 	moves := make([]Move, 0, 100)
 	moves = append(moves, PawnMoves(pos)...)
@@ -195,6 +195,19 @@ func PseudoLegalMoves(pos Position) []Move {
 		index[mt]++
 	}
 	return sorted
+}
+
+// LegalMoves returns all legal Moves in pos.
+func LegalMoves(pos Position) []Move {
+	pl := PseudoLegalMoves(pos)
+	legal := make([]Move, 0, len(pl))
+	for _, m := range pl {
+		if !IsLegal(Make(pos, m)) {
+			continue
+		}
+		legal = append(legal, m)
+	}
+	return legal
 }
 
 var PieceMoves = []func(Position) []Move{

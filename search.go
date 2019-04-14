@@ -105,12 +105,9 @@ func (s *Search) negamax(
 // If rs is not provided, checkDone generates the legal moves first.
 func checkDone(pos Position, rs Results) (RelScore, Results, error) {
 	if len(rs) == 0 {
-		moves := PseudoLegalMoves(pos)
+		moves := LegalMoves(pos)
 		rs = make(Results, 0, len(moves))
 		for _, m := range moves {
-			if !IsLegal(Make(pos, m)) {
-				continue
-			}
 			rs = append(rs, Result{move: m})
 		}
 	}
@@ -165,17 +162,7 @@ func IsCheck(pos Position) bool {
 
 // IsTerminal returns whether or not a Position is checkmate or stalemate.
 // A position is checkmate or stalemate if the side to move has no legal moves.
-func IsTerminal(pos Position) bool { return !anyLegal(pos, PseudoLegalMoves(pos)) }
-
-// anyLegal returns whether any of the given Moves are legal in the given Position.
-func anyLegal(pos Position, moves []Move) bool {
-	for _, m := range moves {
-		if IsLegal(Make(pos, m)) {
-			return true
-		}
-	}
-	return false
-}
+func IsTerminal(pos Position) bool { return len(LegalMoves(pos)) == 0 }
 
 // A Result holds a searched Move along with its evaluated Score,
 // the search depth, and the continuation Results of the search.
