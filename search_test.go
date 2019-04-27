@@ -155,7 +155,7 @@ func BenchmarkSearchPosition(b *testing.B) {
 }
 
 func TestMateSort(t *testing.T) {
-	// rs is a Results whose elements are sorted in order of desirability,
+	// rs is a Results sorted in order of desirability,
 	// so that rs[i] should sort before rs[j] precisely when i < j,
 	// provided that at least one of them contains a checkmateError.
 	var rs = Results{

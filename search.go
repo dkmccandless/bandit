@@ -23,8 +23,7 @@ type Search struct {
 	counters    []int
 }
 
-// SearchPosition searches a Position to the specified depth via iterative deepening
-// and returns the search results.
+// SearchPosition searches a Position to the specified depth via iterative deepening and returns the search results.
 func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 	var rs Results
 	s := Search{
@@ -164,7 +163,7 @@ func IsCheck(pos Position) bool {
 // A position is checkmate or stalemate if the side to move has no legal moves.
 func IsTerminal(pos Position) bool { return len(LegalMoves(pos)) == 0 }
 
-// A Result holds a searched Move along with its evaluated Score,
+// Result holds a searched Move along with its evaluated Score,
 // the search depth, and the continuation Results of the search.
 type Result struct {
 	move  Move
@@ -191,8 +190,7 @@ func (r Result) PV() string {
 	return LongAlgebraic(r.move) + " " + r.cont[0].PV()
 }
 
-// A Results contains the results of a search.
-// Functions returning a Results should sort it before returning.
+// Results contains the results of a search. Functions returning a Results should sort it before returning.
 type Results []Result
 
 // SortFor sorts rs beginning with the best move for c.
@@ -222,7 +220,7 @@ func (rs Results) SortBySquares() { sort.Slice(rs, rs.squareSort) }
 // mateSort reports how two Result elements should be sorted if at least one of them leads to checkmate.
 // ok reports whether either Result contains an error of type checkmateError.
 // If ok is true, less reports whether the Result with index i should sort before the Result with index j.
-// If ok is false, the value of less is meaningless.
+// If ok is false, the value of less is undefined.
 func (rs Results) mateSort(i, j int) (less bool, ok bool) {
 	ich, iok := rs[i].err.(checkmateError)
 	jch, jok := rs[j].err.(checkmateError)
@@ -281,7 +279,7 @@ func (rs Results) String() string {
 	return s
 }
 
-// A checkmateError indicates the number of plies until a forced checkmate can be delivered.
+// checkmateError indicates the number of plies until a forced checkmate can be delivered.
 // Odd values are wins for the player with the next move, and even values for the player with the previous move.
 // The zero value of type checkmateError indicates that the current position is checkmate.
 type checkmateError int
@@ -296,7 +294,7 @@ func (n checkmateError) Error() string {
 // Prev returns the checkmateError corresponding to the previous ply.
 func (n checkmateError) Prev() checkmateError { return n + 1 }
 
-// A Window represents the bounds of a position's evaluation.
+// Window represents the bounds of a position's evaluation.
 type Window struct{ alpha, beta RelScore }
 
 // Constrain updates the lower bound of w, if applicable, and returns the updated window,

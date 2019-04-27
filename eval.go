@@ -22,7 +22,7 @@ const (
 // to deliver checkmate by any sequence of legal moves.
 var errInsufficient = errors.New("insufficient material")
 
-// A Score represents the engine's evaluation of a Position in centipawns relative to White.
+// Score represents the engine's evaluation of a Position in centipawns relative to White.
 type Score int
 
 // String returns a string representation of s.
@@ -38,7 +38,7 @@ func (s Score) Rel(c Color) RelScore {
 	return r
 }
 
-// A RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
+// RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
 type RelScore int
 
 // Abs returns the Score of r relative to White, where r is with respect to c.
@@ -51,7 +51,7 @@ func (r RelScore) Abs(c Color) Score {
 	return s
 }
 
-// The static evaluation of each type of Piece.
+// pieceEval represents the static evaluation of each type of Piece.
 var pieceEval = [6][2]RelScore{
 	// opening, endgame
 	{},
@@ -62,10 +62,11 @@ var pieceEval = [6][2]RelScore{
 	{900, 900},
 }
 
-// Piece-square tables modifying the evaluation of a Piece depending on its Square.
+// pieceSquare is a slice of RelScores modifying the evaluation of a Piece depending on its Square.
 type pieceSquare [64]RelScore
 
-// Values based on Tomasz Michniewski's "Unified Evaluation" test tournament tables
+// ps provides piece-square tables for each Piece of each Color.
+// Values are based on Tomasz Michniewski's "Unified Evaluation" test tournament tables.
 var ps = [2][6]pieceSquare{
 	// Generate White tables in init
 	{},
@@ -157,6 +158,7 @@ var kingps = [2][2]pieceSquare{
 	},
 }
 
+// flip returns the vertical transposition of ps.
 func (ps pieceSquare) flip() pieceSquare {
 	var f pieceSquare
 	for rank := 0; rank < 8; rank++ {
