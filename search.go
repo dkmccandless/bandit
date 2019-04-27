@@ -308,3 +308,6 @@ func (w Window) Constrain(n RelScore) (c Window, constrained bool, ok bool) {
 
 // Neg returns the additive inverse of w.
 func (w Window) Neg() Window { return Window{-w.beta, -w.alpha} }
+
+// String returns a string representation of w.
+func (w Window) String() string { return fmt.Sprintf("(%v, %v)", w.alpha, w.beta) }
