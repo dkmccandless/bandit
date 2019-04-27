@@ -61,12 +61,19 @@ func (s *Search) negamax(
 		return score, rs, err
 	}
 	// Invariant: len(rs) > 0 and rs contains only legal moves
+	if w.beta == -evalInf {
+		// An alternative move from this position's parent delivers mate; no need to search this one.
+		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
+	}
 	if depth == 0 {
 		score, err := Eval(pos)
 		return score.Rel(pos.ToMove), rs, err
 	}
 	if s.allowCutoff && deepEnough(rs, depth) {
 		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
+	}
+	if w.alpha == -evalInf {
+		// There is at least one legal move, so the worst case is not checkmate.
 	}
 
 	for _, r := range rs {
