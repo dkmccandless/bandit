@@ -191,20 +191,20 @@ func TestMateSort(t *testing.T) {
 }
 
 var windowTests = []struct {
-	w, neg          Window
-	n               RelScore
-	c               Window
-	constrained, ok bool
+	w, neg Window
+	n      RelScore
+	c      Window
+	ok     bool
 }{
-	{Window{-50, -30}, Window{30, 50}, -100, Window{-50, -30}, false, true},
-	{Window{-50, -30}, Window{30, 50}, -35, Window{-35, -30}, true, true},
-	{Window{-50, -30}, Window{30, 50}, 0, Window{0, -30}, true, false},
-	{Window{-20, 10}, Window{-10, 20}, -30, Window{-20, 10}, false, true},
-	{Window{-20, 10}, Window{-10, 20}, 0, Window{0, 10}, true, true},
-	{Window{-20, 10}, Window{-10, 20}, 30, Window{30, 10}, true, false},
-	{Window{20, 100}, Window{-100, -20}, 0, Window{20, 100}, false, true},
-	{Window{20, 100}, Window{-100, -20}, 60, Window{60, 100}, true, true},
-	{Window{20, 100}, Window{-100, -20}, 120, Window{120, 100}, true, false},
+	{Window{-50, -30}, Window{30, 50}, -100, Window{-50, -30}, true},
+	{Window{-50, -30}, Window{30, 50}, -35, Window{-35, -30}, true},
+	{Window{-50, -30}, Window{30, 50}, 0, Window{-30, -30}, false},
+	{Window{-20, 10}, Window{-10, 20}, -30, Window{-20, 10}, true},
+	{Window{-20, 10}, Window{-10, 20}, 0, Window{0, 10}, true},
+	{Window{-20, 10}, Window{-10, 20}, 30, Window{10, 10}, false},
+	{Window{20, 100}, Window{-100, -20}, 0, Window{20, 100}, true},
+	{Window{20, 100}, Window{-100, -20}, 60, Window{60, 100}, true},
+	{Window{20, 100}, Window{-100, -20}, 120, Window{100, 100}, false},
 }
 
 func TestNeg(t *testing.T) {
@@ -217,8 +217,8 @@ func TestNeg(t *testing.T) {
 
 func TestConstrain(t *testing.T) {
 	for _, test := range windowTests {
-		if gotc, gotconstrained, gotok := test.w.Constrain(test.n); gotc != test.c || gotconstrained != test.constrained || gotok != test.ok {
-			t.Errorf("TestConstrain(%v, %v): got %v, %v, %v; want %v, %v, %v", test.w, test.n, gotc, gotconstrained, gotok, test.c, test.constrained, test.ok)
+		if gotc, gotok := test.w.Constrain(test.n); gotc != test.c || gotok != test.ok {
+			t.Errorf("TestConstrain(%v, %v): got %v, %v; want %v, %v", test.w, test.n, gotc, gotok, test.c, test.ok)
 		}
 	}
 }

@@ -87,12 +87,13 @@ func (s *Search) negamax(
 			break
 		}
 
-		var constrained, ok bool
-		w, constrained, ok = w.Constrain(score)
-		if constrained {
-			// improved lower bound
+		if !s.allowCutoff {
+			continue
 		}
-		if !ok && s.allowCutoff {
+		var ok bool
+		w, ok = w.Constrain(score)
+		if !ok {
+			// beta cutoff
 			break
 		}
 	}
@@ -300,13 +301,18 @@ func (n checkmateError) Prev() checkmateError { return n + 1 }
 // Window represents the bounds of a position's evaluation.
 type Window struct{ alpha, beta RelScore }
 
-// Constrain updates the lower bound of w, if applicable, and returns the updated window,
-// whether the lower bound was changed, and whether the returned Window remains valid.
-func (w Window) Constrain(n RelScore) (c Window, constrained bool, ok bool) {
-	if n <= w.alpha {
-		return w, false, true
+// Constrain updates the lower bound of w, if applicable, and returns the updated Window
+// and a boolean value reporting whether the returned Window remains valid.
+// Constrain employs fail-hard beta cutoff. Invariant: alpha <= beta in the returned Window.
+func (w Window) Constrain(n RelScore) (c Window, ok bool) {
+	switch {
+	case n <= w.alpha:
+		return w, true
+	case w.beta < n:
+		return Window{w.beta, w.beta}, false
+	default:
+		return Window{n, w.beta}, true
 	}
-	return Window{n, w.beta}, true, n <= w.beta
 }
 
 // Neg returns the additive inverse of w.
