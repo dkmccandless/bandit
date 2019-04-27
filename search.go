@@ -16,6 +16,9 @@ var (
 	errStalemate = errors.New("stalemate")
 	errFiftyMove = errors.New("fifty-move rule")
 	// TODO: threefold repetition
+
+	// openWindow encompasses all possible RelScores.
+	openWindow = Window{-evalInf, evalInf}
 )
 
 type Search struct {
@@ -31,7 +34,7 @@ func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 		counters:    make([]int, depth+1),
 	}
 	for d := 1; d <= depth; d++ {
-		_, rs, _ = s.negamax(ctx, pos, rs, Window{-evalInf, evalInf}, d)
+		_, rs, _ = s.negamax(ctx, pos, rs, openWindow, d)
 		if ctx.Err() != nil {
 			break
 		}
