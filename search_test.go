@@ -215,7 +215,7 @@ func TestNext(t *testing.T) {
 func TestConstrain(t *testing.T) {
 	for _, test := range []struct {
 		w  Window
-		n  RelScore
+		n  Rel
 		c  Window
 		ok bool
 	}{

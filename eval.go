@@ -22,43 +22,53 @@ const (
 // to deliver checkmate by any sequence of legal moves.
 var errInsufficient = errors.New("insufficient material")
 
-// Score represents the engine's evaluation of a Position in centipawns relative to White.
+// Score represents the engine's evaluation of a Position in centipawns.
 type Score int
+
+// Less reports whether a is lower than b.
+func Less(a, b Score) bool { return a < b }
 
 // String returns a string representation of s.
 func (s Score) String() string { return fmt.Sprintf("%.2f", float64(s)/100) }
 
-// Rel returns the RelScore of s with respect to c.
+// Abs represents the engine's evaluation relative to White.
+type Abs Score
+
+// Rel returns the Rel of s with respect to c.
 // This is equal to s for White and -s for Black.
-func (s Score) Rel(c Color) RelScore {
-	r := RelScore(s)
+func (s Abs) Rel(c Color) Rel {
 	if c == Black {
-		return -r
+		return Rel(-s)
 	}
-	return r
+	return Rel(s)
 }
 
-// RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
-type RelScore int
+// String returns a string representation of s.
+func (s Abs) String() string { return Score(s).String() }
 
-// Prev returns the RelScore corresponding to n's previous ply.
-func (n RelScore) Prev() RelScore { return -n }
+// Rel represents the engine's evaluation relative to the side to move.
+type Rel Score
+
+// Abs returns the Abs of s relative to White, where s is with respect to c.
+// This is equal to s for White and -s for Black.
+func (s Rel) Abs(c Color) Abs {
+	if c == Black {
+		return Abs(-s)
+	}
+	return Abs(s)
+}
 
 // Next returns the RelScore corresponding to n's next ply.
-func (n RelScore) Next() RelScore { return -n }
+func (s Rel) Next() Rel { return -s }
 
-// Abs returns the Score of r relative to White, where r is with respect to c.
-// This is equal to r for White and -r for Black.
-func (r RelScore) Abs(c Color) Score {
-	s := Score(r)
-	if c == Black {
-		return -s
-	}
-	return s
-}
+// Prev returns the RelScore corresponding to n's previous ply.
+func (s Rel) Prev() Rel { return -s }
+
+// String returns a string representation of s.
+func (s Rel) String() string { return Score(s).String() }
 
 // pieceEval represents the static evaluation of each type of Piece.
-var pieceEval = [6][2]RelScore{
+var pieceEval = [6][2]Rel{
 	// opening, endgame
 	{},
 	{100, 100},
@@ -68,8 +78,8 @@ var pieceEval = [6][2]RelScore{
 	{900, 900},
 }
 
-// pieceSquare is a slice of RelScores modifying the evaluation of a Piece depending on its Square.
-type pieceSquare [64]RelScore
+// pieceSquare is a slice of Rels modifying the evaluation of a Piece depending on its Square.
+type pieceSquare [64]Rel
 
 // ps provides piece-square tables for each Piece of each Color.
 // Values are based on Tomasz Michniewski's "Unified Evaluation" test tournament tables.
@@ -186,7 +196,7 @@ func init() {
 
 // Eval returns a Position's evaluation score in centipawns relative to White.
 // It returns errInsufficient in the case of insufficient material.
-func Eval(pos Position) (Score, error) {
+func Eval(pos Position) (Abs, error) {
 	if IsInsufficient(pos) {
 		return 0, errInsufficient
 	}
@@ -197,19 +207,27 @@ func Eval(pos Position) (Score, error) {
 		nrooks   = PopCount(pos.b[White][Rook] | pos.b[Black][Rook])
 		nqueens  = PopCount(pos.b[White][Queen] | pos.b[Black][Queen])
 		phase    = queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
-		eval     Score
+		eval     int
 	)
 	for sq := a1; sq <= h8; sq++ {
-		switch c, p := pos.PieceOn(sq); {
-		case p == None:
+		c, p := pos.PieceOn(sq)
+		if p == None {
 			continue
-		case p == King:
-			eval += taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase).Abs(c)
+		}
+		var r Rel
+		switch p {
+		case King:
+			r = taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase)
 		default:
-			eval += (taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][sq]).Abs(c)
+			r = taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][sq]
+		}
+		if c == White {
+			eval += int(r)
+		} else {
+			eval -= int(r)
 		}
 	}
-	return eval, nil
+	return Abs(eval), nil
 }
 
 // IsInsufficient reports whether pos contains insufficient material to deliver checkmate.
@@ -243,6 +261,6 @@ func IsInsufficient(pos Position) bool {
 
 // taper returns the weighted sum of open and end according to the fraction phase/totalPhase.
 // This mitigates evaluation discontinuity in the event of rapid loss of material.
-func taper(open, end RelScore, phase int) RelScore {
-	return (open*RelScore(phase) + end*(totalPhase-RelScore(phase))) / totalPhase
+func taper(open, end Rel, phase int) Rel {
+	return (open*Rel(phase) + end*(totalPhase-Rel(phase))) / totalPhase
 }

@@ -117,7 +117,7 @@ func main() {
 
 type Player interface {
 	// Returning the zero value Move{} indicates resignation.
-	Play(Position) (Score, Move)
+	Play(Position) (Abs, Move)
 }
 
 type Computer struct {
@@ -125,7 +125,7 @@ type Computer struct {
 	depth    int
 }
 
-func (c Computer) Play(pos Position) (Score, Move) {
+func (c Computer) Play(pos Position) (Abs, Move) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, c.moveTime)
 	defer cancel()
@@ -137,7 +137,7 @@ func (c Computer) Play(pos Position) (Score, Move) {
 
 type Human struct{ s *bufio.Scanner }
 
-func (h Human) Play(pos Position) (Score, Move) {
+func (h Human) Play(pos Position) (Abs, Move) {
 	ch := make(chan Results)
 	// Wait for SearchPosition to return
 	defer func() { <-ch }()

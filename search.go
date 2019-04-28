@@ -17,7 +17,7 @@ var (
 	errFiftyMove = errors.New("fifty-move rule")
 	// TODO: threefold repetition
 
-	// openWindow encompasses all possible RelScores.
+	// openWindow encompasses all possible Rels.
 	openWindow = Window{-evalInf, evalInf}
 )
 
@@ -52,7 +52,7 @@ func (s *Search) negamax(
 	rs Results,
 	w Window,
 	depth int,
-) (bestScore RelScore, results Results, err error) {
+) (bestScore Rel, results Results, err error) {
 	s.counters[len(s.counters)-1-depth]++
 
 	score, rs, err := checkDone(pos, rs)
@@ -113,7 +113,7 @@ func (s *Search) negamax(
 // If not, the RelScore is 0 and the error is nil.
 // In either case, checkDone returns a Results of all legal moves in pos.
 // If rs is not provided, checkDone generates the legal moves first.
-func checkDone(pos Position, rs Results) (RelScore, Results, error) {
+func checkDone(pos Position, rs Results) (Rel, Results, error) {
 	if len(rs) == 0 {
 		moves := LegalMoves(pos)
 		rs = make(Results, 0, len(moves))
@@ -178,7 +178,7 @@ func IsTerminal(pos Position) bool { return len(LegalMoves(pos)) == 0 }
 // the search depth, and the continuation Results of the search.
 type Result struct {
 	move  Move
-	score Score
+	score Abs
 	depth int
 	cont  Results
 	err   error
@@ -306,19 +306,19 @@ func (n checkmateError) Error() string {
 func (n checkmateError) Prev() checkmateError { return n + 1 }
 
 // Window represents the bounds of a position's evaluation.
-type Window struct{ alpha, beta RelScore }
+type Window struct{ alpha, beta Rel }
 
 // Constrain updates the lower bound of w, if applicable, and returns the updated Window
 // and a boolean value reporting whether the returned Window remains valid.
 // Constrain employs fail-hard beta cutoff. Invariant: alpha <= beta in the returned Window.
-func (w Window) Constrain(n RelScore) (c Window, ok bool) {
+func (w Window) Constrain(s Rel) (c Window, ok bool) {
 	switch {
-	case n <= w.alpha:
+	case Less(Score(s), Score(w.alpha)):
 		return w, true
-	case w.beta < n:
+	case Less(Score(w.beta), Score(s)):
 		return Window{w.beta, w.beta}, false
 	default:
-		return Window{n, w.beta}, true
+		return Window{s, w.beta}, true
 	}
 }
 

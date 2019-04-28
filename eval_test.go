@@ -2,6 +2,19 @@ package main
 
 import "testing"
 
+func TestLess(t *testing.T) {
+	// ss is a slice of Rels sorted such that ss[i] is lower than ss[j] precisely when i < j.
+	var ss = []Rel{-100, -1, 1, 100}
+	for i, a := range ss {
+		for j, b := range ss {
+			want := i < j
+			if got := Less(Score(a), Score(b)); got != want {
+				t.Errorf("TestLess(%v, %v): got %v, want %v", a, b, got, want)
+			}
+		}
+	}
+}
+
 func TestIsInsufficient(t *testing.T) {
 	for _, test := range []struct {
 		fen  string
