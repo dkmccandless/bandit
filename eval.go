@@ -41,6 +41,12 @@ func (s Score) Rel(c Color) RelScore {
 // RelScore represents the engine's evaluation of a Position in centipawns relative to the side to move.
 type RelScore int
 
+// Prev returns the RelScore corresponding to n's previous ply.
+func (n RelScore) Prev() RelScore { return -n }
+
+// Next returns the RelScore corresponding to n's next ply.
+func (n RelScore) Next() RelScore { return -n }
+
 // Abs returns the Score of r relative to White, where r is with respect to c.
 // This is equal to r for White and -r for Black.
 func (r RelScore) Abs(c Color) Score {

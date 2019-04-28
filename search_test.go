@@ -190,33 +190,45 @@ func TestMateSort(t *testing.T) {
 	}
 }
 
-var windowTests = []struct {
-	w, neg Window
-	n      RelScore
-	c      Window
-	ok     bool
+var nextTests = []struct {
+	w, next Window
 }{
-	{Window{-50, -30}, Window{30, 50}, -100, Window{-50, -30}, true},
-	{Window{-50, -30}, Window{30, 50}, -35, Window{-35, -30}, true},
-	{Window{-50, -30}, Window{30, 50}, 0, Window{-30, -30}, false},
-	{Window{-20, 10}, Window{-10, 20}, -30, Window{-20, 10}, true},
-	{Window{-20, 10}, Window{-10, 20}, 0, Window{0, 10}, true},
-	{Window{-20, 10}, Window{-10, 20}, 30, Window{10, 10}, false},
-	{Window{20, 100}, Window{-100, -20}, 0, Window{20, 100}, true},
-	{Window{20, 100}, Window{-100, -20}, 60, Window{60, 100}, true},
-	{Window{20, 100}, Window{-100, -20}, 120, Window{100, 100}, false},
+	{Window{-50, -30}, Window{30, 50}},
+	{Window{-50, -30}, Window{30, 50}},
+	{Window{-50, -30}, Window{30, 50}},
+	{Window{-20, 10}, Window{-10, 20}},
+	{Window{-20, 10}, Window{-10, 20}},
+	{Window{-20, 10}, Window{-10, 20}},
+	{Window{20, 100}, Window{-100, -20}},
+	{Window{20, 100}, Window{-100, -20}},
+	{Window{20, 100}, Window{-100, -20}},
 }
 
-func TestNeg(t *testing.T) {
-	for _, test := range windowTests {
-		if got := test.w.Neg(); got != test.neg {
-			t.Errorf("TestNeg(%v): got %v, want %v", test.w, got, test.neg)
+func TestNext(t *testing.T) {
+	for _, test := range nextTests {
+		if got := test.w.Next(); got != test.next {
+			t.Errorf("TestNext(%v): got %v, want %v", test.w, got, test.next)
 		}
 	}
 }
 
 func TestConstrain(t *testing.T) {
-	for _, test := range windowTests {
+	for _, test := range []struct {
+		w  Window
+		n  RelScore
+		c  Window
+		ok bool
+	}{
+		{Window{-50, -30}, -100, Window{-50, -30}, true},
+		{Window{-50, -30}, -35, Window{-35, -30}, true},
+		{Window{-50, -30}, 0, Window{-30, -30}, false},
+		{Window{-20, 10}, -30, Window{-20, 10}, true},
+		{Window{-20, 10}, 0, Window{0, 10}, true},
+		{Window{-20, 10}, 30, Window{10, 10}, false},
+		{Window{20, 100}, 0, Window{20, 100}, true},
+		{Window{20, 100}, 60, Window{60, 100}, true},
+		{Window{20, 100}, 120, Window{100, 100}, false},
+	} {
 		if gotc, gotok := test.w.Constrain(test.n); gotc != test.c || gotok != test.ok {
 			t.Errorf("TestConstrain(%v, %v): got %v, %v; want %v, %v", test.w, test.n, gotc, gotok, test.c, test.ok)
 		}

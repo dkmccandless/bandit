@@ -82,8 +82,8 @@ func (s *Search) negamax(
 			continue
 		}
 
-		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Neg(), depth-1)
-		score *= -1
+		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Next(), depth-1)
+		score = score.Prev()
 		if e, ok := err.(checkmateError); ok {
 			err = e.Prev()
 		}
@@ -302,7 +302,7 @@ func (n checkmateError) Error() string {
 	return fmt.Sprintf("#%d", (n+1)/2)
 }
 
-// Prev returns the checkmateError corresponding to the previous ply.
+// Prev returns the checkmateError corresponding to n's previous ply.
 func (n checkmateError) Prev() checkmateError { return n + 1 }
 
 // Window represents the bounds of a position's evaluation.
@@ -322,8 +322,8 @@ func (w Window) Constrain(n RelScore) (c Window, ok bool) {
 	}
 }
 
-// Neg returns the additive inverse of w.
-func (w Window) Neg() Window { return Window{-w.beta, -w.alpha} }
+// Next returns the Window corresponding to w's following ply.
+func (w Window) Next() Window { return Window{w.beta.Next(), w.alpha.Next()} }
 
 // String returns a string representation of w.
 func (w Window) String() string { return fmt.Sprintf("(%v, %v)", w.alpha, w.beta) }
