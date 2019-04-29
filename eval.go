@@ -67,8 +67,11 @@ func (s Rel) Prev() Rel { return -s }
 // String returns a string representation of s.
 func (s Rel) String() string { return Score(s).String() }
 
+// relcent represents the numerical component of an evaluation in relative centipawns.
+type relcent int
+
 // pieceEval represents the static evaluation of each type of Piece.
-var pieceEval = [6][2]Rel{
+var pieceEval = [6][2]relcent{
 	// opening, endgame
 	{},
 	{100, 100},
@@ -78,8 +81,8 @@ var pieceEval = [6][2]Rel{
 	{900, 900},
 }
 
-// pieceSquare is a slice of Rels modifying the evaluation of a Piece depending on its Square.
-type pieceSquare [64]Rel
+// pieceSquare is a slice of relcents modifying the evaluation of a Piece depending on its Square.
+type pieceSquare [64]relcent
 
 // ps provides piece-square tables for each Piece of each Color.
 // Values are based on Tomasz Michniewski's "Unified Evaluation" test tournament tables.
@@ -214,7 +217,7 @@ func Eval(pos Position) (Abs, error) {
 		if p == None {
 			continue
 		}
-		var r Rel
+		var r relcent
 		switch p {
 		case King:
 			r = taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase)
@@ -261,6 +264,6 @@ func IsInsufficient(pos Position) bool {
 
 // taper returns the weighted sum of open and end according to the fraction phase/totalPhase.
 // This mitigates evaluation discontinuity in the event of rapid loss of material.
-func taper(open, end Rel, phase int) Rel {
-	return (open*Rel(phase) + end*(totalPhase-Rel(phase))) / totalPhase
+func taper(open, end relcent, phase int) relcent {
+	return (open*relcent(phase) + end*(totalPhase-relcent(phase))) / totalPhase
 }
