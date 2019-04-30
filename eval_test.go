@@ -3,11 +3,30 @@ package main
 import "testing"
 
 func TestLess(t *testing.T) {
-	// ss is a slice of Rels sorted such that ss[i] is lower than ss[j] precisely when i < j.
-	var ss = []Rel{-100, -1, 1, 100}
+	// ss is a slice of Rels sorted such that ss[i] is lower than ss[j] precisely when i < j,
+	// except that no drawing evaluation is lower than another.
+	var ss = []Rel{
+		Rel{err: checkmateError(0)},
+		Rel{err: checkmateError(4)},
+		Rel{err: checkmateError(14)},
+		Rel{n: -100},
+		Rel{n: -1},
+		Rel{err: errFiftyMove},
+		Rel{err: errInsufficient},
+		Rel{err: errStalemate},
+		Rel{n: 1},
+		Rel{n: 100},
+		Rel{err: checkmateError(15)},
+		Rel{err: checkmateError(5)},
+		Rel{err: checkmateError(1)},
+	}
 	for i, a := range ss {
 		for j, b := range ss {
-			want := i < j
+			_, ach := a.err.(checkmateError)
+			_, bch := b.err.(checkmateError)
+			adraw := a.err != nil && !ach
+			bdraw := b.err != nil && !bch
+			want := i < j && !(adraw && bdraw)
 			if got := Less(Score(a), Score(b)); got != want {
 				t.Errorf("TestLess(%v, %v): got %v, want %v", a, b, got, want)
 			}

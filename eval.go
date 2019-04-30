@@ -23,13 +23,44 @@ const (
 var errInsufficient = errors.New("insufficient material")
 
 // Score represents the engine's evaluation of a Position in centipawns.
-type Score int
-
-// Less reports whether a is lower than b.
-func Less(a, b Score) bool { return a < b }
+// When the evaluation indicates a game-ending condition, err describes the condition.
+type Score struct {
+	n   int
+	err error
+}
 
 // String returns a string representation of s.
-func (s Score) String() string { return fmt.Sprintf("%.2f", float64(s)/100) }
+func (s Score) String() string {
+	if s.err != nil {
+		return s.err.Error()
+	}
+	return fmt.Sprintf("%.2f", float64(s.n)/100)
+}
+
+// Less reports whether a is lower than b.
+// Mates in an even number of plies are lower than any non-mate score,
+// mates in an odd number of plies are higher than any non-mate score,
+// and mates in fewer plies are more extremal than mates in more plies.
+func Less(a, b Score) bool {
+	aply, ach := a.err.(checkmateError)
+	bply, bch := b.err.(checkmateError)
+	switch {
+	case ach && bch:
+		switch awin, bwin := aply&1 != 0, bply&1 != 0; {
+		case awin && bwin:
+			return aply > bply
+		case !awin && !bwin:
+			return aply < bply
+		default:
+			return bwin
+		}
+	case ach:
+		return aply&1 == 0
+	case bch:
+		return bply&1 != 0
+	}
+	return a.n < b.n
+}
 
 // Abs represents the engine's evaluation relative to White.
 type Abs Score
@@ -37,10 +68,10 @@ type Abs Score
 // Rel returns the Rel of s with respect to c.
 // This is equal to s for White and -s for Black.
 func (s Abs) Rel(c Color) Rel {
-	if c == Black {
-		return Rel(-s)
+	if c == White {
+		return Rel(s)
 	}
-	return Rel(s)
+	return Rel{-s.n, s.err}
 }
 
 // String returns a string representation of s.
@@ -52,17 +83,11 @@ type Rel Score
 // Abs returns the Abs of s relative to White, where s is with respect to c.
 // This is equal to s for White and -s for Black.
 func (s Rel) Abs(c Color) Abs {
-	if c == Black {
-		return Abs(-s)
+	if c == White {
+		return Abs(s)
 	}
-	return Abs(s)
+	return Abs{-s.n, s.err}
 }
-
-// Next returns the RelScore corresponding to n's next ply.
-func (s Rel) Next() Rel { return -s }
-
-// Prev returns the RelScore corresponding to n's previous ply.
-func (s Rel) Prev() Rel { return -s }
 
 // String returns a string representation of s.
 func (s Rel) String() string { return Score(s).String() }
@@ -197,11 +222,11 @@ func init() {
 	}
 }
 
-// Eval returns a Position's evaluation score in centipawns relative to White.
+// Eval returns a Position's Abs evaluation score.
 // It returns errInsufficient in the case of insufficient material.
-func Eval(pos Position) (Abs, error) {
+func Eval(pos Position) Abs {
 	if IsInsufficient(pos) {
-		return 0, errInsufficient
+		return Abs{err: errInsufficient}
 	}
 	var (
 		npawns   = PopCount(pos.b[White][Pawn] | pos.b[Black][Pawn])
@@ -230,7 +255,7 @@ func Eval(pos Position) (Abs, error) {
 			eval -= int(r)
 		}
 	}
-	return Abs(eval), nil
+	return Abs{n: eval}
 }
 
 // IsInsufficient reports whether pos contains insufficient material to deliver checkmate.

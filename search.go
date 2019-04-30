@@ -7,10 +7,6 @@ import (
 	"sort"
 )
 
-const (
-	evalInf = 50000
-)
-
 var (
 	errCheckmate checkmateError
 	errStalemate = errors.New("stalemate")
@@ -18,7 +14,10 @@ var (
 	// TODO: threefold repetition
 
 	// openWindow encompasses all possible Rels.
-	openWindow = Window{-evalInf, evalInf}
+	openWindow = Window{
+		Rel{err: errCheckmate},        // worst case: mated
+		Rel{err: errCheckmate.Prev()}, // best case: mate in 1 ply
+	}
 )
 
 type Search struct {
@@ -34,7 +33,7 @@ func SearchPosition(ctx context.Context, pos Position, depth int) Results {
 		counters:    make([]int, depth+1),
 	}
 	for d := 1; d <= depth; d++ {
-		_, rs, _ = s.negamax(ctx, pos, rs, openWindow, d)
+		_, rs = s.negamax(ctx, pos, rs, openWindow, d)
 		if ctx.Err() != nil {
 			break
 		}
@@ -52,43 +51,41 @@ func (s *Search) negamax(
 	rs Results,
 	w Window,
 	depth int,
-) (bestScore Rel, results Results, err error) {
+) (bestScore Rel, results Results) {
 	s.counters[len(s.counters)-1-depth]++
 
-	score, rs, err := checkDone(pos, rs)
-	if err != nil && (s.allowCutoff || err != errInsufficient) {
+	score, rs := checkDone(pos, rs)
+	if score.err != nil && (s.allowCutoff || score.err != errInsufficient) {
 		// Do not cut off during perft in the case of insufficient material
-		return score, rs, err
+		return score, rs
 	}
 	// Invariant: len(rs) > 0 and rs contains only legal moves
-	if w.beta == -evalInf {
+	if w.beta.err == errCheckmate {
 		// An alternative move from this position's parent delivers mate; no need to search this one.
-		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
+		return rs[0].score.Rel(pos.ToMove), rs
 	}
 	if depth == 0 {
-		score, err := Eval(pos)
-		return score.Rel(pos.ToMove), rs, err
+		score := Eval(pos)
+		return score.Rel(pos.ToMove), rs
 	}
 	if s.allowCutoff && deepEnough(rs, depth) {
-		return rs[0].score.Rel(pos.ToMove), rs, rs[0].err
+		return rs[0].score.Rel(pos.ToMove), rs
 	}
-	if w.alpha == -evalInf {
+	if w.alpha.err == errCheckmate {
 		// There is at least one legal move, so the worst case is not checkmate.
+		w = Window{Rel{err: errCheckmate.Prev().Prev()}, w.beta}
 	}
 
 	for _, r := range rs {
-		if r.err != nil && s.allowCutoff {
-			// The move is already known not to avoid a game-ending state; no need to search it further
+		if r.score.err != nil && s.allowCutoff {
+			// The move is already known not to avoid a game-ending state; no need to search it further.
 			continue
 		}
 
-		score, cont, err := s.negamax(ctx, Make(pos, r.move), r.cont, w.Next(), depth-1)
+		score, cont := s.negamax(ctx, Make(pos, r.move), r.cont, w.Next(), depth-1)
 		score = score.Prev()
-		if e, ok := err.(checkmateError); ok {
-			err = e.Prev()
-		}
 
-		rs.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont, err: err})
+		rs.Update(Result{move: r.move, score: score.Abs(pos.ToMove), depth: depth - 1, cont: cont})
 
 		if depth >= 3 && ctx.Err() != nil {
 			break
@@ -105,15 +102,14 @@ func (s *Search) negamax(
 		}
 	}
 	rs.SortFor(pos.ToMove)
-	return w.alpha, rs, rs[0].err
+	return w.alpha, rs
 }
 
 // checkDone reports whether pos represents a game-ending position.
-// If so, the RelScore and error value indicate the type of ending.
-// If not, the RelScore is 0 and the error is nil.
+// If so, the Rel indicates the evaluation. If not, checkDone returns a zero-valued Rel.
 // In either case, checkDone returns a Results of all legal moves in pos.
 // If rs is not provided, checkDone generates the legal moves first.
-func checkDone(pos Position, rs Results) (Rel, Results, error) {
+func checkDone(pos Position, rs Results) (Rel, Results) {
 	if len(rs) == 0 {
 		moves := LegalMoves(pos)
 		rs = make(Results, 0, len(moves))
@@ -124,23 +120,23 @@ func checkDone(pos Position, rs Results) (Rel, Results, error) {
 	if len(rs) == 0 {
 		// no legal moves
 		if IsCheck(pos) {
-			return -evalInf, rs, errCheckmate
+			return Rel{err: errCheckmate}, rs
 		}
-		return 0, rs, errStalemate
+		return Rel{err: errStalemate}, rs
 	}
 	if pos.HalfMove == 100 {
 		// fifty-move rule
-		return 0, rs, errFiftyMove
+		return Rel{err: errFiftyMove}, rs
 	}
-	return 0, rs, nil
+	return Rel{}, rs
 }
 
 // deepEnough reports whether rs stores the results of a position search to at least the specified depth.
 func deepEnough(rs Results, depth int) bool {
 	// rs is already deep enough if all non-terminal elements have been searched to at least depth-1,
-	// as long as they have been searched to non-zero depth
+	// as long as they have been searched to non-zero depth.
 	for _, r := range rs {
-		if (r.depth == 0 || r.depth < depth-1) && r.err == nil {
+		if (r.depth == 0 || r.depth < depth-1) && r.score.err == nil {
 			return false
 		}
 	}
@@ -181,14 +177,13 @@ type Result struct {
 	score Abs
 	depth int
 	cont  Results
-	err   error
 }
 
 // String returns a string representation of r, including its principal variation.
 func (r Result) String() string {
 	s := fmt.Sprintf("%v (%v) %v", r.score, r.depth, r.PV())
-	if r.err != nil {
-		return s + " " + r.err.Error()
+	if r.score.err != nil {
+		return s + " " + r.score.err.Error()
 	}
 	return s
 }
@@ -209,7 +204,7 @@ type Results []Result
 func (rs Results) SortFor(c Color) {
 	// Sort first by mate condition, then by depth decreasing,
 	// then by Score decreasing/increasing for White/Black,
-	// and then by origin and destination Square increasing
+	// and then by origin and destination Square increasing.
 	sort.Slice(rs, func(i, j int) bool {
 		if less, ok := rs.mateSort(i, j); ok {
 			return less
@@ -218,7 +213,7 @@ func (rs Results) SortFor(c Color) {
 			return rs[i].depth > rs[j].depth
 		}
 		if rs[i].score != rs[j].score {
-			return (rs[i].score > rs[j].score) == (c == White)
+			return (rs[i].score.n > rs[j].score.n) == (c == White)
 		}
 		return rs.squareSort(i, j)
 	})
@@ -233,26 +228,12 @@ func (rs Results) SortBySquares() { sort.Slice(rs, rs.squareSort) }
 // If ok is true, less reports whether the Result with index i should sort before the Result with index j.
 // If ok is false, the value of less is undefined.
 func (rs Results) mateSort(i, j int) (less bool, ok bool) {
-	ich, iok := rs[i].err.(checkmateError)
-	jch, jok := rs[j].err.(checkmateError)
-	switch {
-	case iok && jok:
-		switch iwin, jwin := ich&1 != 0, jch&1 != 0; {
-		case iwin && jwin:
-			// faster winning mate first
-			return ich < jch, true
-		case !iwin && !jwin:
-			// slower losing mate first
-			return ich > jch, true
-		default:
-			return iwin, true
-		}
-	case iok:
-		return ich&1 != 0, true
-	case jok:
-		return jch&1 == 0, true
+	_, ich := rs[i].score.err.(checkmateError)
+	_, jch := rs[j].score.err.(checkmateError)
+	if !ich && !jch {
+		return false, false
 	}
-	return false, false
+	return !Less(Score(rs[i].score), Score(rs[j].score)), true
 }
 
 // squareSort reports how two Result elements should be sorted by their moves' origin and destination Squares,
@@ -304,6 +285,31 @@ func (n checkmateError) Error() string {
 
 // Prev returns the checkmateError corresponding to n's previous ply.
 func (n checkmateError) Prev() checkmateError { return n + 1 }
+
+// Next returns the checkmateError corresponding to n's following ply.
+// It panics if n is not positive.
+func (n checkmateError) Next() checkmateError {
+	if n < 1 {
+		panic(fmt.Sprintf("non-positive checkmateError %v", n))
+	}
+	return n - 1
+}
+
+// Prev returns the Rel corresponding to s's previous ply.
+func (s Rel) Prev() Rel {
+	if err, ok := s.err.(checkmateError); ok {
+		return Rel{-s.n, err.Prev()}
+	}
+	return Rel{-s.n, s.err}
+}
+
+// Next returns the Rel corresponding to s's following ply.
+func (s Rel) Next() Rel {
+	if err, ok := s.err.(checkmateError); ok {
+		return Rel{-s.n, err.Next()}
+	}
+	return Rel{-s.n, s.err}
+}
 
 // Window represents the bounds of a position's evaluation.
 type Window struct{ alpha, beta Rel }

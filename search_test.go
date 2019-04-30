@@ -143,38 +143,29 @@ func TestIsTerminal(t *testing.T) {
 	}
 }
 
-func BenchmarkSearchPosition(b *testing.B) {
-	pos, err := ParseFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-	if err != nil {
-		b.Fatal(err)
-	}
-	ctx := context.Background()
-	for i := 0; i < b.N; i++ {
-		SearchPosition(ctx, pos, 2)
-	}
-}
-
 func TestMateSort(t *testing.T) {
 	// rs is a Results sorted in order of desirability,
 	// so that rs[i] should sort before rs[j] precisely when i < j,
 	// provided that at least one of them contains a checkmateError.
 	var rs = Results{
-		Result{err: checkmateError(1)},
-		Result{err: checkmateError(5)},
-		Result{err: checkmateError(15)},
-		Result{score: 100},
-		Result{err: errStalemate},
-		Result{err: errInsufficient},
-		Result{err: errFiftyMove},
-		Result{score: -100},
-		Result{err: checkmateError(14)},
-		Result{err: checkmateError(4)},
-		Result{err: checkmateError(0)},
+		Result{score: Abs{err: checkmateError(1)}},
+		Result{score: Abs{err: checkmateError(5)}},
+		Result{score: Abs{err: checkmateError(15)}},
+		Result{score: Abs{n: 100}},
+		Result{score: Abs{n: 1}},
+		Result{score: Abs{err: errStalemate}},
+		Result{score: Abs{err: errInsufficient}},
+		Result{score: Abs{err: errFiftyMove}},
+		Result{score: Abs{n: -1}},
+		Result{score: Abs{n: -100}},
+		Result{score: Abs{err: checkmateError(14)}},
+		Result{score: Abs{err: checkmateError(4)}},
+		Result{score: Abs{err: checkmateError(0)}},
 	}
 	for i := range rs {
 		for j := i + 1; j < len(rs); j++ {
-			_, iok := rs[i].err.(checkmateError)
-			_, jok := rs[j].err.(checkmateError)
+			_, iok := rs[i].score.err.(checkmateError)
+			_, jok := rs[j].score.err.(checkmateError)
 			wantok := iok || jok
 
 			wantless := wantok // true if the sort is valid
@@ -190,24 +181,51 @@ func TestMateSort(t *testing.T) {
 	}
 }
 
-var nextTests = []struct {
-	w, next Window
-}{
-	{Window{-50, -30}, Window{30, 50}},
-	{Window{-50, -30}, Window{30, 50}},
-	{Window{-50, -30}, Window{30, 50}},
-	{Window{-20, 10}, Window{-10, 20}},
-	{Window{-20, 10}, Window{-10, 20}},
-	{Window{-20, 10}, Window{-10, 20}},
-	{Window{20, 100}, Window{-100, -20}},
-	{Window{20, 100}, Window{-100, -20}},
-	{Window{20, 100}, Window{-100, -20}},
+func materel(n int) Rel { return Rel{err: checkmateError(n)} }
+
+var relTests = []struct{ r, p, n Rel }{
+	{Rel{n: -100}, Rel{n: 100}, Rel{n: 100}},
+	{Rel{n: 0}, Rel{n: 0}, Rel{n: 0}},
+	{Rel{n: 100}, Rel{n: -100}, Rel{n: -100}},
+	{Rel{err: errStalemate}, Rel{err: errStalemate}, Rel{err: errStalemate}},
+	{Rel{err: errInsufficient}, Rel{err: errInsufficient}, Rel{err: errInsufficient}},
+	{Rel{err: errFiftyMove}, Rel{err: errFiftyMove}, Rel{err: errFiftyMove}},
+	{materel(4), materel(5), materel(3)},
+	{materel(3), materel(4), materel(2)},
+	{materel(1), materel(2), Rel{err: errCheckmate}},
 }
 
-func TestNext(t *testing.T) {
-	for _, test := range nextTests {
-		if got := test.w.Next(); got != test.next {
-			t.Errorf("TestNext(%v): got %v, want %v", test.w, got, test.next)
+func TestRelPrev(t *testing.T) {
+	for _, test := range relTests {
+		if got := test.r.Prev(); got != test.p {
+			t.Errorf("TestPrev(%v): got %v, want %v", test.r, got, test.p)
+		}
+	}
+}
+
+func TestRelNext(t *testing.T) {
+	for _, test := range relTests {
+		if got := test.r.Next(); got != test.n {
+			t.Errorf("TestNext(%v): got %v, want %v", test.r, got, test.n)
+		}
+	}
+}
+
+func centwindow(a, b int) Window { return Window{Rel{n: a}, Rel{n: b}} }
+
+func TestWindowNext(t *testing.T) {
+	for _, test := range []struct {
+		w, n Window
+	}{
+		{centwindow(-50, -30), centwindow(30, 50)},
+		{centwindow(-20, 10), centwindow(-10, 20)},
+		{centwindow(20, 100), centwindow(-100, -20)},
+		{Window{materel(4), Rel{n: 100}}, Window{Rel{n: -100}, materel(3)}},
+		{Window{Rel{n: 1}, materel(5)}, Window{materel(4), Rel{n: -1}}},
+		{Window{materel(2), materel(9)}, Window{materel(8), materel(1)}},
+	} {
+		if got := test.w.Next(); got != test.n {
+			t.Errorf("TestNext(%v): got %v, want %v", test.w, got, test.n)
 		}
 	}
 }
@@ -219,18 +237,65 @@ func TestConstrain(t *testing.T) {
 		c  Window
 		ok bool
 	}{
-		{Window{-50, -30}, -100, Window{-50, -30}, true},
-		{Window{-50, -30}, -35, Window{-35, -30}, true},
-		{Window{-50, -30}, 0, Window{-30, -30}, false},
-		{Window{-20, 10}, -30, Window{-20, 10}, true},
-		{Window{-20, 10}, 0, Window{0, 10}, true},
-		{Window{-20, 10}, 30, Window{10, 10}, false},
-		{Window{20, 100}, 0, Window{20, 100}, true},
-		{Window{20, 100}, 60, Window{60, 100}, true},
-		{Window{20, 100}, 120, Window{100, 100}, false},
+		{centwindow(-50, -30), materel(6), centwindow(-50, -30), true},
+		{centwindow(-50, -30), Rel{n: -100}, centwindow(-50, -30), true},
+		{centwindow(-50, -30), Rel{n: -35}, centwindow(-35, -30), true},
+		{centwindow(-50, -30), Rel{n: -30}, centwindow(-30, -30), true},
+		{centwindow(-50, -30), Rel{n: 0}, centwindow(-30, -30), false},
+		{centwindow(-50, -30), Rel{err: errStalemate}, centwindow(-30, -30), false},
+		{centwindow(-50, -30), materel(5), centwindow(-30, -30), false},
+
+		{centwindow(-20, 10), materel(6), centwindow(-20, 10), true},
+		{centwindow(-20, 10), Rel{n: -30}, centwindow(-20, 10), true},
+		{centwindow(-20, 10), Rel{n: 0}, centwindow(0, 10), true},
+		{centwindow(-20, 10), Rel{err: errStalemate}, Window{Rel{err: errStalemate}, Rel{n: 10}}, true},
+		{centwindow(-20, 10), Rel{n: 10}, centwindow(10, 10), true},
+		{centwindow(-20, 10), Rel{n: 30}, centwindow(10, 10), false},
+		{centwindow(-20, 10), materel(5), centwindow(10, 10), false},
+
+		{centwindow(20, 100), materel(6), centwindow(20, 100), true},
+		{centwindow(20, 100), Rel{err: errStalemate}, centwindow(20, 100), true},
+		{centwindow(20, 100), Rel{n: 0}, centwindow(20, 100), true},
+		{centwindow(20, 100), Rel{n: 60}, centwindow(60, 100), true},
+		{centwindow(20, 100), Rel{n: 100}, centwindow(100, 100), true},
+		{centwindow(20, 100), Rel{n: 120}, centwindow(100, 100), false},
+		{centwindow(20, 100), materel(5), centwindow(100, 100), false},
+
+		{Window{materel(4), Rel{n: 5}}, materel(2), Window{materel(4), Rel{n: 5}}, true},
+		{Window{materel(4), Rel{n: 5}}, materel(6), Window{materel(6), Rel{n: 5}}, true},
+		{Window{materel(4), Rel{n: 5}}, Rel{n: -800}, centwindow(-800, 5), true},
+		{Window{materel(4), Rel{n: 5}}, Rel{err: errStalemate}, Window{Rel{err: errStalemate}, Rel{n: 5}}, true},
+		{Window{materel(4), Rel{n: 5}}, Rel{n: 5}, centwindow(5, 5), true},
+		{Window{materel(4), Rel{n: 5}}, Rel{n: 800}, centwindow(5, 5), false},
+		{Window{materel(4), Rel{n: 5}}, materel(5), centwindow(5, 5), false},
+
+		{Window{Rel{n: 5}, materel(5)}, materel(8), Window{Rel{n: 5}, materel(5)}, true},
+		{Window{Rel{n: 5}, materel(5)}, Rel{n: -800}, Window{Rel{n: 5}, materel(5)}, true},
+		{Window{Rel{n: 5}, materel(5)}, Rel{err: errStalemate}, Window{Rel{n: 5}, materel(5)}, true},
+		{Window{Rel{n: 5}, materel(5)}, Rel{n: 15}, Window{Rel{n: 15}, materel(5)}, true},
+		{Window{Rel{n: 5}, materel(5)}, materel(5), Window{materel(5), materel(5)}, true},
+		{Window{Rel{n: 5}, materel(5)}, materel(1), Window{materel(5), materel(5)}, false},
+
+		{Window{materel(8), materel(5)}, materel(2), Window{materel(8), materel(5)}, true},
+		{Window{materel(8), materel(5)}, materel(24), Window{materel(24), materel(5)}, true},
+		{Window{materel(8), materel(5)}, Rel{n: 50}, Window{Rel{n: 50}, materel(5)}, true},
+		{Window{materel(8), materel(5)}, materel(25), Window{materel(25), materel(5)}, true},
+		{Window{materel(8), materel(5)}, materel(5), Window{materel(5), materel(5)}, true},
+		{Window{materel(8), materel(5)}, materel(3), Window{materel(5), materel(5)}, false},
 	} {
 		if gotc, gotok := test.w.Constrain(test.n); gotc != test.c || gotok != test.ok {
 			t.Errorf("TestConstrain(%v, %v): got %v, %v; want %v, %v", test.w, test.n, gotc, gotok, test.c, test.ok)
 		}
+	}
+}
+
+func BenchmarkSearchPosition(b *testing.B) {
+	pos, err := ParseFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+	if err != nil {
+		b.Fatal(err)
+	}
+	ctx := context.Background()
+	for i := 0; i < b.N; i++ {
+		SearchPosition(ctx, pos, 2)
 	}
 }

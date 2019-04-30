@@ -95,7 +95,7 @@ func main() {
 			movesText += "1/2-1/2"
 			break
 		}
-		if _, err := Eval(pos); err == errInsufficient {
+		if s := Eval(pos); s.err == errInsufficient {
 			movesText += "1/2-1/2"
 			break
 		}
@@ -171,7 +171,7 @@ func (h Human) Play(pos Position) (Abs, Move) {
 				return r.score, m
 			}
 		}
-		return 0, m
+		return Abs{}, m
 	}
 }
 
