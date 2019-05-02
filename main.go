@@ -78,9 +78,12 @@ func main() {
 		movesText += alg + " "
 
 		pos = Make(pos, move)
+		if s, ok := score.err.(checkmateError); ok {
+			score = Abs{err: s.Next()}
+		}
 
 		fmt.Printf("%v%v %v %v\n", movenum, alg, score, time.Since(moveTime).Truncate(time.Millisecond))
-		fmt.Println(pos.String())
+		fmt.Println(pos)
 
 		// Check for end-of-game conditions
 		if IsTerminal(pos) {
