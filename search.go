@@ -124,7 +124,7 @@ func checkDone(pos Position, rs Results) (Rel, Results) {
 		}
 		return Rel{err: errStalemate}, rs
 	}
-	if pos.HalfMove == 100 {
+	if pos.HalfMove >= 100 {
 		// fifty-move rule
 		return Rel{err: errFiftyMove}, rs
 	}
