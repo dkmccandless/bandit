@@ -5,6 +5,36 @@ import (
 	"testing"
 )
 
+func TestCheckDone(t *testing.T) {
+	for _, test := range []struct {
+		fen string
+		err error
+	}{
+		{"6qk/8/5B2/8/8/8/8/K6R b - - 0 1", errCheckmate},
+		{"R6k/6pp/8/8/8/8/8/K7 b - - 0 1", errCheckmate},
+		{"6rk/5Npp/8/8/8/8/8/7K b - - 0 1", errCheckmate},
+		{"kQK5/8/8/8/8/8/8/8 b - - 100 100", errCheckmate}, // checkmate supercedes fifty-move rule
+		{"7k/6q1/6pK/7b/7b/8/8/Q7 w - - 0 1", nil},         // forced mate in 1
+		{"3k4/3P4/3K4/8/8/8/8/8 b - - 0 1", errStalemate},
+		{"K6k/2q5/8/8/8/8/8/8 w - - 0 1", errStalemate},
+		{"3k4/7b/1p3p2/8/1p1K1p2/8/b7/8 w - - 0 1", errStalemate},
+		{"3k4/7b/1p3p2/8/1p1K1p2/8/b7/8 w - - 100 100", errStalemate}, // stalemate supercedes fifty-move rule
+		{"K1k5/q7/3Q4/8/8/8/8/8 w - - 0 1", nil},                      // forced stalemate in 1
+		{"6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 99 99", nil},
+		{"6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 100 100", errFiftyMove},
+		{"6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 101 101", errFiftyMove},
+		{InitialPositionFEN, nil},
+	} {
+		pos, err := ParseFEN(test.fen)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, _ := checkDone(pos); got.err != test.err {
+			t.Errorf("TestCheckDone(%v): got %v, want %v", test.fen, got.err, test.err)
+		}
+	}
+}
+
 func TestIsPseudoLegal(t *testing.T) {
 	for _, test := range []struct {
 		fen  string
