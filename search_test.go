@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestCheckDone(t *testing.T) {
+func TestCheckTerminal(t *testing.T) {
 	for _, test := range []struct {
 		fen string
 		err error
@@ -29,8 +29,8 @@ func TestCheckDone(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got, _ := checkDone(pos); got.err != test.err {
-			t.Errorf("TestCheckDone(%v): got %v, want %v", test.fen, got.err, test.err)
+		if got := checkTerminal(pos); got != test.err {
+			t.Errorf("TestCheckTerminal(%v): got %v, want %v", test.fen, got, test.err)
 		}
 	}
 }

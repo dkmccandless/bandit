@@ -54,10 +54,13 @@ func (s *Search) negamax(
 ) (bestScore Rel, results Results) {
 	s.counters[len(s.counters)-1-depth]++
 
-	score, rs := checkDone(pos, rs)
-	if score.err != nil && (s.allowCutoff || score.err != errInsufficient) {
+	err := checkTerminal(pos)
+	if err != nil && (s.allowCutoff || err != errInsufficient) {
 		// Do not cut off during perft in the case of insufficient material
-		return score, rs
+		return Rel{err: err}, nil
+	}
+	if len(rs) == 0 {
+		rs = legalResults(pos)
 	}
 	// Invariant: len(rs) > 0 and rs contains only legal moves
 	if w.beta.err == errCheckmate {
@@ -105,30 +108,29 @@ func (s *Search) negamax(
 	return w.alpha, rs
 }
 
-// checkDone reports whether pos represents a game-ending position.
-// If so, the Rel indicates the evaluation. If not, checkDone returns a zero-valued Rel.
-// In either case, checkDone returns a Results of all legal moves in pos.
-// If rs is not provided, checkDone generates the legal moves first.
-func checkDone(pos Position, rs Results) (Rel, Results) {
-	if len(rs) == 0 {
-		moves := LegalMoves(pos)
-		rs = make(Results, 0, len(moves))
-		for _, m := range moves {
-			rs = append(rs, Result{move: m})
-		}
-	}
-	if len(rs) == 0 {
-		// no legal moves
+// checkTerminal returns an error describing the type of terminal position represented by pos, or nil if pos is not terminal.
+func checkTerminal(pos Position) error {
+	if IsTerminal(pos) {
 		if IsCheck(pos) {
-			return Rel{err: errCheckmate}, rs
+			return errCheckmate
 		}
-		return Rel{err: errStalemate}, rs
+		return errStalemate
 	}
 	if pos.HalfMove >= 100 {
 		// fifty-move rule
-		return Rel{err: errFiftyMove}, rs
+		return errFiftyMove
 	}
-	return Rel{}, rs
+	return nil
+}
+
+// legalResults returns a Results containing all legal moves in pos.
+func legalResults(pos Position) Results {
+	moves := LegalMoves(pos)
+	rs := make(Results, 0, len(moves))
+	for _, m := range moves {
+		rs = append(rs, Result{move: m})
+	}
+	return rs
 }
 
 // deepEnough reports whether rs stores the results of a position search to at least the specified depth.
