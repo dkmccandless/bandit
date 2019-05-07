@@ -204,18 +204,24 @@ type Results []Result
 // SortFor sorts rs beginning with the best move for c.
 // The sort is not guaranteed to be stable.
 func (rs Results) SortFor(c Color) {
-	// Sort first by mate condition, then by depth decreasing,
+	// Sort first by terminal condition, then by depth decreasing,
 	// then by Score decreasing/increasing for White/Black,
 	// and then by origin and destination Square increasing.
 	sort.Slice(rs, func(i, j int) bool {
-		if less, ok := rs.mateSort(i, j); ok {
-			return less
+		less := Less(Score(rs[i].score), Score(rs[j].score))
+		if ierr, jerr := rs[i].score.err, rs[j].score.err; ierr != nil || jerr != nil {
+			_, ich := ierr.(checkmateError)
+			_, jch := jerr.(checkmateError)
+			if ich || jch {
+				return !less
+			}
+			return !less == (c == White)
 		}
 		if rs[i].depth != rs[j].depth {
 			return rs[i].depth > rs[j].depth
 		}
 		if rs[i].score != rs[j].score {
-			return (rs[i].score.n > rs[j].score.n) == (c == White)
+			return !less == (c == White)
 		}
 		return rs.squareSort(i, j)
 	})
@@ -224,19 +230,6 @@ func (rs Results) SortFor(c Color) {
 // SortBySquares sorts rs first by the Result moves' origin Squares and then by their destination Squares,
 // and finally by promotion piece in the case of pawn promotions.
 func (rs Results) SortBySquares() { sort.Slice(rs, rs.squareSort) }
-
-// mateSort reports how two Result elements should be sorted if at least one of them leads to checkmate.
-// ok reports whether either Result contains an error of type checkmateError.
-// If ok is true, less reports whether the Result with index i should sort before the Result with index j.
-// If ok is false, the value of less is undefined.
-func (rs Results) mateSort(i, j int) (less bool, ok bool) {
-	_, ich := rs[i].score.err.(checkmateError)
-	_, jch := rs[j].score.err.(checkmateError)
-	if !ich && !jch {
-		return false, false
-	}
-	return !Less(Score(rs[i].score), Score(rs[j].score)), true
-}
 
 // squareSort reports how two Result elements should be sorted by their moves' origin and destination Squares,
 // and then finally by promotion piece in the case of promoting pawns.

@@ -107,39 +107,95 @@ func TestIs(t *testing.T) {
 	}
 }
 
-func TestMateSort(t *testing.T) {
-	// rs is a Results sorted in order of desirability,
-	// so that rs[i] should sort before rs[j] precisely when i < j,
-	// provided that at least one of them contains a checkmateError.
-	var rs = Results{
-		Result{score: Abs{err: checkmateError(1)}},
-		Result{score: Abs{err: checkmateError(5)}},
-		Result{score: Abs{err: checkmateError(15)}},
-		Result{score: Abs{n: 100}},
-		Result{score: Abs{n: 1}},
-		Result{score: Abs{err: errStalemate}},
-		Result{score: Abs{err: errInsufficient}},
-		Result{score: Abs{err: errFiftyMove}},
-		Result{score: Abs{n: -1}},
-		Result{score: Abs{n: -100}},
-		Result{score: Abs{err: checkmateError(14)}},
-		Result{score: Abs{err: checkmateError(4)}},
-		Result{score: Abs{err: checkmateError(0)}},
+// isDraw returns whether s represents a drawing terminal condition.
+func isDraw(s Abs) bool {
+	if s.err == nil {
+		return false
 	}
-	for i := range rs {
-		for j := i + 1; j < len(rs); j++ {
-			_, iok := rs[i].score.err.(checkmateError)
-			_, jok := rs[j].score.err.(checkmateError)
-			wantok := iok || jok
+	_, ok := s.err.(checkmateError)
+	return !ok
+}
 
-			wantless := wantok // true if the sort is valid
-			if gotless, gotok := rs.mateSort(i, j); gotless != wantless || gotok != wantok {
-				t.Errorf("TestMateSort(%v, %v): got %v, %v; want %v, %v", rs[i], rs[j], gotless, gotok, wantless, wantok)
-			}
-
-			wantless = false
-			if gotless, gotok := rs.mateSort(j, i); gotless != wantless || gotok != wantok {
-				t.Errorf("TestMateSort(%v, %v): got %v, %v; want %v, %v", rs[j], rs[i], gotless, gotok, wantless, wantok)
+func TestSortFor(t *testing.T) {
+	// rs is an unsorted Results; want contains the same elements
+	// sorted in order of desirability for White and Black, respectively,
+	// so that want[c][i] should sort before want[c][j] precisely when i < j,
+	// except that the sort order of two drawing errors is undefined.
+	var (
+		rs = Results{
+			Result{depth: 5, score: Abs{err: checkmateError(5)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+			Result{depth: 0, score: Abs{err: checkmateError(0)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
+			Result{depth: 1, score: Abs{err: checkmateError(1)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{n: 1}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 3, score: Abs{n: 150}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 3, score: Abs{n: 200}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Queen}},
+			Result{depth: 4, score: Abs{n: -1}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 5, score: Abs{err: errInsufficient}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 2, score: Abs{err: errStalemate}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 8, score: Abs{err: checkmateError(8)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Knight}},
+			Result{depth: 4, score: Abs{n: -100}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 8, score: Abs{err: errFiftyMove}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{n: 100}, move: Move{Piece: Rook, From: a1, To: a8}},
+			Result{depth: 4, score: Abs{err: checkmateError(4)}, move: Move{Piece: Rook, From: a1, To: a8}},
+		}
+		want = []Results{
+			{
+				Result{depth: 1, score: Abs{err: checkmateError(1)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 5, score: Abs{err: checkmateError(5)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{n: 100}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Knight}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Queen}},
+				Result{depth: 4, score: Abs{n: 1}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 8, score: Abs{err: errFiftyMove}, move: Move{Piece: Rook, From: a1, To: a8}},    //
+				Result{depth: 2, score: Abs{err: errStalemate}, move: Move{Piece: Rook, From: a1, To: a8}},    // relative order undefined
+				Result{depth: 5, score: Abs{err: errInsufficient}, move: Move{Piece: Rook, From: a1, To: a8}}, //
+				Result{depth: 4, score: Abs{n: -1}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{n: -100}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 3, score: Abs{n: 200}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 3, score: Abs{n: 150}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 8, score: Abs{err: checkmateError(8)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{err: checkmateError(4)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 0, score: Abs{err: checkmateError(0)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			},
+			{
+				Result{depth: 1, score: Abs{err: checkmateError(1)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 5, score: Abs{err: checkmateError(5)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{n: -100}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{n: -1}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 2, score: Abs{err: errStalemate}, move: Move{Piece: Rook, From: a1, To: a8}},    //
+				Result{depth: 5, score: Abs{err: errInsufficient}, move: Move{Piece: Rook, From: a1, To: a8}}, // relative order undefined
+				Result{depth: 8, score: Abs{err: errFiftyMove}, move: Move{Piece: Rook, From: a1, To: a8}},    //
+				Result{depth: 4, score: Abs{n: 1}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Knight}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Queen}},
+				Result{depth: 4, score: Abs{n: 100}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 3, score: Abs{n: 150}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 3, score: Abs{n: 200}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 8, score: Abs{err: checkmateError(8)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 4, score: Abs{err: checkmateError(4)}, move: Move{Piece: Rook, From: a1, To: a8}},
+				Result{depth: 0, score: Abs{err: checkmateError(0)}, move: Move{Piece: Rook, From: a1, To: a8}},
+			},
+		}
+	)
+	for _, c := range []Color{White, Black} {
+		got := append(Results{}, rs...)
+		got.SortFor(c)
+		for i := range got {
+			sg, sw := got[i].score, want[c][i].score
+			if sg != sw && !(isDraw(sg) && isDraw(sw)) {
+				t.Errorf("TestSortFor(%v): got %v, want %v", c, got, want[c])
+				break
 			}
 		}
 	}
