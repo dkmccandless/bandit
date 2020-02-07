@@ -101,8 +101,8 @@ func TestIs(t *testing.T) {
 		if got := IsCheck(pos); got != test.c {
 			t.Errorf("TestIsCheck(%v): got %v, want %v", test.fen, got, test.c)
 		}
-		if got := IsTerminal(pos); got != test.t {
-			t.Errorf("TestIsTerminal(%v): got %v, want %v", test.fen, got, test.t)
+		if got := IsMate(pos); got != test.t {
+			t.Errorf("TestIsMate(%v): got %v, want %v", test.fen, got, test.t)
 		}
 	}
 }

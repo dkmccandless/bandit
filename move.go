@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-// A Move contains the information needed to transition from one Position to another.
+// Move contains the information needed to transition from one Position to another.
 type Move struct {
 	From          Square
 	To            Square // invariant: not equal to From
@@ -210,16 +210,6 @@ func LegalMoves(pos Position) []Move {
 	return legal
 }
 
-var PieceMoves = []func(Position) []Move{
-	nil,
-	PawnMoves,
-	KnightMoves,
-	BishopMoves,
-	RookMoves,
-	QueenMoves,
-	KingMoves,
-}
-
 // rangeBits applies f sequentially to each set bit in board.
 func rangeBits(board Board, f func(Board, Square)) {
 	for bits := board; bits != 0; bits = ResetLS1B(bits) {
@@ -341,8 +331,21 @@ func canKSCastle(pos Position) bool {
 func pMoves(pos Position, p Piece) []Move {
 	moves := make([]Move, 0, 28) // two bishops, two rooks, or one queen can have 28 moves
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
+	var pAttacks func(Board, Board) Board
+	switch p {
+	case Knight:
+		pAttacks = knightAttacks
+	case Bishop:
+		pAttacks = bishopAttacks
+	case Rook:
+		pAttacks = rookAttacks
+	case Queen:
+		pAttacks = queenAttacks
+	case King:
+		pAttacks = kingAttacks
+	}
 	rangeBits(pos.b[pos.ToMove][p], func(f Board, from Square) {
-		rangeBits(pieceAttacks[p](f, empty)&^pos.b[pos.ToMove][All], func(t Board, to Square) {
+		rangeBits(pAttacks(f, empty)&^pos.b[pos.ToMove][All], func(t Board, to Square) {
 			m := Move{From: from, To: to, Piece: p}
 			if t&pos.b[pos.Opp()][All] != 0 {
 				_, capturePiece := pos.PieceOn(to)
@@ -361,7 +364,7 @@ var (
 )
 
 func init() {
-	for s := Square(0); s < 64; s++ {
+	for s := a1; s <= h8; s++ {
 		b := s.Board()
 		// +7 +8 +9
 		// -1  K +1
@@ -376,16 +379,6 @@ func init() {
 	}
 }
 
-var pieceAttacks = []func(piece, empty Board) Board{
-	nil,
-	nil,
-	knightAttacks,
-	bishopAttacks,
-	rookAttacks,
-	queenAttacks,
-	kingAttacks,
-}
-
 // whitePawnAdvances returns a Board of all squares to which a white pawn at p can advance when there are no pieces at empty.
 func whitePawnAdvances(p, empty Board) Board {
 	return (north(north(p)&empty)&empty)<<32>>32 | (north(p) & empty)
@@ -397,14 +390,10 @@ func blackPawnAdvances(p, empty Board) Board {
 }
 
 // whitePawnAttacks returns a Board of all squares attacked by a white pawn at p.
-func whitePawnAttacks(p, _ Board) Board {
-	return northwest(p) | northeast(p)
-}
+func whitePawnAttacks(p, _ Board) Board { return northwest(p) | northeast(p) }
 
 // blackPawnAttacks returns a Board of all squares attacked by a black pawn at p.
-func blackPawnAttacks(p, _ Board) Board {
-	return southwest(p) | southeast(p)
-}
+func blackPawnAttacks(p, _ Board) Board { return southwest(p) | southeast(p) }
 
 // knightAttacks returns a Board of all squares attacked by a knight at p.
 func knightAttacks(p, _ Board) Board { return nAttacks[LS1BIndex(p)] }
@@ -420,9 +409,7 @@ func rookAttacks(p, empty Board) Board {
 }
 
 // queenAttacks returns a Board of all squares attacked by a queen at p when there are no pieces at empty.
-func queenAttacks(p, empty Board) Board {
-	return rookAttacks(p, empty) | bishopAttacks(p, empty)
-}
+func queenAttacks(p, empty Board) Board { return rookAttacks(p, empty) | bishopAttacks(p, empty) }
 
 // kingAttacks returns a Board of all squares attacked by a king at p.
 func kingAttacks(p, _ Board) Board { return kAttacks[LS1BIndex(p)] }
@@ -547,14 +534,14 @@ func Algebraic(pos Position, m Move) string {
 		} else {
 			s = pieceLetter[m.Piece]
 			var can Board
-			for _, mm := range PieceMoves[m.Piece](pos) {
-				if mm.To == m.To {
+			for _, mm := range LegalMoves(pos) {
+				if mm.To == m.To && mm.Piece == m.Piece {
 					can ^= mm.From.Board()
 				}
 			}
 			switch {
 			case PopCount(can) == 1:
-				// don't need to specify
+				// no need to specify
 			case PopCount(can&Files[m.From.File()]) == 1:
 				s += fileLetters[m.From.File()]
 			case PopCount(can&Ranks[m.From.Rank()]) == 1:
@@ -573,7 +560,7 @@ func Algebraic(pos Position, m Move) string {
 		}
 	}
 	if newpos := Make(pos, m); IsCheck(newpos) {
-		if IsTerminal(newpos) {
+		if IsMate(newpos) {
 			s += "#"
 		} else {
 			s += "+"

@@ -22,10 +22,12 @@ const (
 // to deliver checkmate by any sequence of legal moves.
 var errInsufficient = errors.New("insufficient material")
 
-// Score represents the engine's evaluation of a Position in centipawns.
-// When the evaluation indicates a game-ending condition, err describes the condition.
+// Score represents the engine's evaluation of a Position.
 type Score struct {
-	n   int
+	// n is the engine's evaluation of a non-terminal Position in centipawns.
+	n int
+
+	// err decsibes a terminal condition if one exists.
 	err error
 }
 
@@ -38,9 +40,9 @@ func (s Score) String() string {
 }
 
 // Less reports whether a is lower than b.
-// Mates in an even number of plies are lower than any non-mate score,
-// mates in an odd number of plies are higher than any non-mate score,
-// and mates in fewer plies are more extremal than mates in more plies.
+// Checkmates in an even number of plies are lower than any non-mate score,
+// checkmates in an odd number of plies are higher than any non-mate score,
+// and checkmates in fewer plies are more extremal than checkmates in more plies.
 func Less(a, b Score) bool {
 	aply, ach := a.err.(checkmateError)
 	bply, bch := b.err.(checkmateError)
@@ -237,17 +239,17 @@ func Eval(pos Position) Abs {
 		phase    = queenPhase*nqueens + rookPhase*nrooks + bishopPhase*nbishops + knightPhase*nknights + pawnPhase*npawns
 		eval     int
 	)
-	for sq := a1; sq <= h8; sq++ {
-		c, p := pos.PieceOn(sq)
+	for s := a1; s <= h8; s++ {
+		c, p := pos.PieceOn(s)
 		if p == None {
 			continue
 		}
 		var r relcent
 		switch p {
 		case King:
-			r = taper(kingps[c][opening][sq], kingps[c][endgame][sq], phase)
+			r = taper(kingps[c][opening][s], kingps[c][endgame][s], phase)
 		default:
-			r = taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][sq]
+			r = taper(pieceEval[p][opening], pieceEval[p][endgame], phase) + ps[c][p][s]
 		}
 		if c == White {
 			eval += int(r)
@@ -271,19 +273,19 @@ func IsInsufficient(pos Position) bool {
 		nbishops = PopCount(pos.b[White][Bishop] | pos.b[Black][Bishop])
 	)
 	if nknights+nbishops <= 1 {
-		// KvK, KNvK, KBvK
+		// KvK, KNvK, and KBvK are drawn.
 		return true
 	}
 	if nknights > 0 {
-		// knight and at least one other minor piece; in KNNvK, KBvKN, and KNvKN,
-		// mate can't be forced, although it can be given by a series of legal moves
+		// Knight and at least one other minor piece: in KNNvK, KBvKN, and KNvKN,
+		// mate can't be forced, although it can be given by a series of legal moves.
 		return false
 	}
 	if bishops := (pos.b[White][Bishop] | pos.b[Black][Bishop]); bishops&DarkSquares == 0 || bishops&LightSquares == 0 {
-		// kings and any number of same color bishops only
+		// Kings and any number of same color bishops only is drawn.
 		return true
 	}
-	// opposite color bishops; KBvKB can mate, although not by force
+	// Opposite color bishops: KBvKB can mate, although not by force.
 	return false
 }
 

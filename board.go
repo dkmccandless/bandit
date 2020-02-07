@@ -6,23 +6,23 @@ import (
 	"strings"
 )
 
-// A Square represents a square on the board in little-endian rank-file order (a1 = 0, a2 = 1, h8 = 63).
+// Square represents a square on the board in little-endian rank-file order (a1 = 0, a2 = 1, h8 = 63).
 // Behavior is undefined for values outside of [0, 64).
 type Square byte
 
-// Rank returns the rank of the input Square in the range [0, 7).
+// Rank returns the rank of s in the range [0, 7).
 func (s Square) Rank() byte { return byte(s >> 3) }
 
-// File returns the file of the input Square in the range [0, 7).
+// File returns the file of s in the range [0, 7).
 func (s Square) File() byte { return byte(s & 7) }
 
-// Diagonal returns the number of the southwest-northeast diagonal on which the input Square lies, from 0 (h1) to 14 (a8).
+// Diagonal returns the southwest-northeast diagonal of s, from 0 (h1) to 14 (a8).
 func (s Square) Diagonal() byte { return 7 + s.Rank() - s.File() }
 
-// AntiDiagonal returns the number of the northwest-southeast anti-diagonal on which the input Square lies, from 0 (a1) to 14 (h8).
+// AntiDiagonal returns the northwest-southeast anti-diagonal of s, from 0 (a1) to 14 (h8).
 func (s Square) AntiDiagonal() byte { return s.Rank() + s.File() }
 
-// Board returns a Board in which only the bit corresponding to the input Square is set.
+// Board returns a Board in which only the bit corresponding to s is set.
 func (s Square) Board() Board { return 1 << s }
 
 //go:generate stringer -type=Square
@@ -93,7 +93,7 @@ const (
 	h8
 )
 
-// A Board represents a bitboard that describes some aspect of a chess board or position.
+// Board represents a bitboard that describes some aspect of a chess board or position.
 // Every bit corresponds to one square on the board.
 type Board uint64
 
@@ -132,27 +132,32 @@ var (
 	fileLetters = []string{"a", "b", "c", "d", "e", "f", "g", "h"}
 	rankNumbers = []string{"1", "2", "3", "4", "5", "6", "7", "8"}
 
-	// The squares that must be empty before castling
+	// QSCastleEmptySquares describes the squares that must be empty when castling queenside.
 	QSCastleEmptySquares = []Board{
 		(BFile | CFile | DFile) & Rank1,
 		(BFile | CFile | DFile) & Rank8,
 	}
+
+	// KSCastleEmptySquares describes the squares that must be empty when castling kingside.
 	KSCastleEmptySquares = []Board{
 		(FFile | GFile) & Rank1,
 		(FFile | GFile) & Rank8,
 	}
-	// The squares that the king occupies during castling
+
+	// QSCastleKingSquares describes the squares that the king occupies during queenside castling.
 	QSCastleKingSquares = []Board{
 		(CFile | DFile | EFile) & Rank1,
 		(CFile | DFile | EFile) & Rank8,
 	}
+
+	// KSCastleKingSquares describes the squares that the king occupies during kingside castling.
 	KSCastleKingSquares = []Board{
 		(EFile | FFile | GFile) & Rank1,
 		(EFile | FFile | GFile) & Rank8,
 	}
 )
 
-// The two Colors of chess pieces are White and Black. A piece's color determines when it can move and whether it can move to an occupied Square.
+// Color represents the color of a chess piece. A piece's color determines when it can move and whether it can move to an occupied Square.
 type Color byte
 
 //go:generate stringer -type=Color
@@ -161,69 +166,75 @@ const (
 	Black
 )
 
-// A Piece is one of the six types of chess pieces, or an auxiliary value corresponding to none or all of them.
+// Piece is one of the six types of chess pieces, or an auxiliary value corresponding to none or all of them.
 type Piece byte
 
 //go:generate stringer -type=Piece
 const (
+	// None is used in Move's CapturePiece and PromotePiece fields to denote that a move is not a capture or a promotion.
 	None Piece = iota
+
 	Pawn
 	Knight
 	Bishop
 	Rook
 	Queen
 	King
+
+	// All is updated in a Position's b elements to track each side's pieces regardless of type.
+	// This is an optimization for the move generation functions.
 	All
 )
 
 var pieceLetter = []string{"", "P", "N", "B", "R", "Q", "K"}
 
-// A Position contains all information necessary to specify the current state of a game.
+// Position contains all information necessary to specify the current state of a game.
 type Position struct {
-	// Castling rights: a value of true indicates that the specified Color has the option of castling to the specified side, if it is legal to do so.
+	// QSCastle and KSCastle describe queenside and kingside castling rights.
+	// True indicates that the indexed Color retains the option of castling, if it is legal to do so.
 	QSCastle [2]bool
 	KSCastle [2]bool
 
-	// The unique square, if any, to which an en passant capture can be played by the side to move.
+	// ep is the unique square, if any, to which an en passant capture can be played by the side to move.
 	// Valid values are in the ranges [16, 24) (the 3rd rank, with Black to move following a White pawn push)
 	// and [40, 48) (the 6th rank, with White to move following a Black pawn push).
 	// A value of 0 indicates that there is no en passant opportunity. Behavior is undefined for any other value.
 	ep Square
 
-	// The side to move in the current position.
+	// ToMove is the side to move.
 	ToMove Color
 
-	// The number of half-moves (plies) since the most recent capture or pawn move,
+	// HalfMove is the number of half-moves (plies) since the most recent capture or pawn move,
 	// for use in determining eligibility for a draw under the fifty-move rule.
 	HalfMove int
 
-	// The number of the current move for the side to play.
+	// FullMove is the number of the current move for the side to play.
 	// This begins at 1 and increments after each Black move.
 	FullMove int
 
-	// The Square of each king.
+	// KingSquare is the Square of the indexed Color's king.
 	KingSquare [2]Square
 
-	// Boards corresponding to the positions of all White and Black pieces,
-	// indexed in the order specified by the Piece constants:
-	// pawns, knights, bishops, rooks, queens, and the king,
-	// with an additional Board representing their union.
+	// b contains Boards describing the positions of all White and Black pieces.
+	// The set bits of b[c][p] give the locations of all pieces of color c and type p.
+	// b[c][All] gives the union of all pieces of color c.
 	b [2][8]Board
 
-	// The position's Zobrist bitstring.
+	// z is the position's Zobrist bitstring.
 	z Zobrist
 }
 
+// InitialPositionFEN is the FEN record of the initial position of the pieces.
 var InitialPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-// InitialPosition represents the position at the beginning of a game of chess.
+// InitialPosition is the initial Position.
 var InitialPosition, _ = ParseFEN(InitialPositionFEN)
 
 // Opp returns the Color of the player who does not have the move.
 func (pos Position) Opp() Color { return pos.ToMove ^ 1 }
 
-// PieceOn returns the Color and Piece type of the piece, if any, on the specified Square.
-// It returns a Piece value of None if the Square is empty.
+// PieceOn returns the Color and Piece type of the piece, if any, on s.
+// It returns a Piece of None if the Square is empty.
 func (pos Position) PieceOn(s Square) (c Color, p Piece) {
 	b := s.Board()
 	switch {
@@ -244,7 +255,7 @@ func (pos Position) PieceOn(s Square) (c Color, p Piece) {
 	return
 }
 
-// LS1B returns a Board consisting of only the least significant 1 bit of the input Board.
+// LS1B returns a Board consisting of only the least significant 1 bit of b.
 func LS1B(b Board) Board {
 	if b == 0 {
 		panic("LS1B: Board is empty")
@@ -252,12 +263,12 @@ func LS1B(b Board) Board {
 	return b & -b
 }
 
-// LS1BIndex returns the position of the least significant 1 bit of the input Board.
+// LS1BIndex returns the position of the least significant 1 bit of b.
 func LS1BIndex(b Board) Square {
 	return Square(bits.TrailingZeros64(uint64(b)))
 }
 
-// ResetLS1B returns a Board consisting of all set bits of the input Board except for the least significant one.
+// ResetLS1B returns a Board consisting of all set bits of b except for the least significant one.
 func ResetLS1B(b Board) Board {
 	if b == 0 {
 		panic("ResetLS1B: Board is empty")
@@ -265,7 +276,7 @@ func ResetLS1B(b Board) Board {
 	return b & (b - 1)
 }
 
-// PopCount returns the number of 1 bits in the input Board.
+// PopCount returns the number of 1 bits in b.
 func PopCount(b Board) int {
 	return bits.OnesCount64(uint64(b))
 }

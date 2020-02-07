@@ -145,8 +145,8 @@ func ParseFEN(fen string) (pos Position, err error) {
 	return
 }
 
-// ParseSquare returns the Square represented by the string.
-// It returns an error if the string does not consist of one letter in [a, h] followed by one number in [1, 8].
+// ParseSquare returns the Square represented by s.
+// It returns an error if s does not consist of one letter in [a, h] followed by one number in [1, 8].
 func ParseSquare(s string) (sq Square, err error) {
 	if len(s) != 2 || !isFile(rune(s[0])) || !isNumber(rune(s[1])) {
 		return 0, fmt.Errorf("ParseSquare(%v): Invalid character", s)

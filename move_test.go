@@ -380,6 +380,20 @@ var algebraicTests = []struct {
 	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a1, To: d4, Piece: Bishop}, "B1d4", "Ba1-d4"},
 	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: g7, To: d4, Piece: Bishop}, "Bgd4", "Bg7-d4"},
 	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "Ba7d4", "Ba7-d4"},
+
+	// Cases with pinned pieces that should not be disambiguated
+	{"7k/8/8/8/8/8/R7/KR5r w - - 0 1", Move{From: a2, To: b2, Piece: Rook}, "Rb2", "Ra2-b2"},
+	{"r6k/8/8/8/8/8/R7/KR6 w - - 0 1", Move{From: b1, To: b2, Piece: Rook}, "Rb2", "Rb1-b2"},
+	{"7k/8/8/8/8/1R6/R7/KR5r w - - 0 1", Move{From: a2, To: b2, Piece: Rook}, "Rab2", "Ra2-b2"},
+	{"7k/8/8/8/8/1R6/R7/KR5r w - - 0 1", Move{From: b3, To: b2, Piece: Rook}, "Rbb2", "Rb3-b2"},
+	{"r6k/8/8/8/8/1R6/R7/KR6 w - - 0 1", Move{From: b1, To: b2, Piece: Rook}, "R1b2", "Rb1-b2"},
+	{"r6k/8/8/8/8/1R6/R7/KR6 w - - 0 1", Move{From: b3, To: b2, Piece: Rook}, "R3b2", "Rb3-b2"},
+	{"5b1k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r3b1 w - - 0 1", Move{From: c6, To: e4, Piece: Queen}, "Qe4", "Qc6-e4"},
+	{"2r2b1k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e3, To: e4, Piece: Queen}, "Qe4", "Qe3-e4"},
+	{"5b1k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e3, To: e4, Piece: Queen}, "Qee4", "Qe3-e4"},
+	{"7k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: c6, To: e4, Piece: Queen}, "Qce4", "Qc6-e4"},
+	{"7k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e3, To: e4, Piece: Queen}, "Q3e4", "Qe3-e4"},
+	{"7k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e7, To: e4, Piece: Queen}, "Q7e4", "Qe7-e4"},
 }
 
 func TestLongAlgebraic(t *testing.T) {
@@ -403,31 +417,21 @@ func TestAlgebraic(t *testing.T) {
 }
 
 func BenchmarkConstructMove(b *testing.B) {
-	m := Move{}
 	for i := 0; i < b.N; i++ {
-		m.From = b7
-		m.To = a8
-		m.Piece = Pawn
-		m.CapturePiece = Rook
-		m.CaptureSquare = a8
-		m.PromotePiece = Queen
+		_ = Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}
 	}
 }
 
 func BenchmarkReadMove(b *testing.B) {
 	m := Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}
-	var from, to, captureSquare Square
-	var piece, capturePiece, promotePiece Piece
 	for i := 0; i < b.N; i++ {
-		from = m.From
-		to = m.To
-		piece = m.Piece
-		capturePiece = m.CapturePiece
-		captureSquare = m.CaptureSquare
-		promotePiece = m.PromotePiece
+		_ = m.From
+		_ = m.To
+		_ = m.Piece
+		_ = m.CapturePiece
+		_ = m.CaptureSquare
+		_ = m.PromotePiece
 	}
-	_, _, _ = from, to, captureSquare
-	_, _, _ = piece, capturePiece, promotePiece
 }
 
 func BenchmarkMake(b *testing.B) {
@@ -450,7 +454,7 @@ func BenchmarkMake(b *testing.B) {
 	} {
 		b.Run(benchmark.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_ = Make(pos, benchmark.move)
+				Make(pos, benchmark.move)
 			}
 		})
 	}
@@ -462,6 +466,6 @@ func BenchmarkPseudoLegalMoves(b *testing.B) {
 		b.Fatal(err)
 	}
 	for i := 0; i < b.N; i++ {
-		_ = PseudoLegalMoves(pos)
+		PseudoLegalMoves(pos)
 	}
 }

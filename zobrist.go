@@ -1,5 +1,6 @@
 package main
 
+// Zobrist is a key for Zobrist hashing of a Position.
 type Zobrist uint64
 
 // Cryptographically random bistrings for Zobrist hashing. Do not mutate.

@@ -110,16 +110,21 @@ game:
 	fmt.Println(time.Since(startTime).Truncate(time.Millisecond))
 }
 
+// Player is the interface that wraps the Play method.
+//
+// Play analyzes a Position and returns an evaluation score and a Move in that Position.
+// Returning the zero value Move{} indicates resignation.
 type Player interface {
-	// Returning the zero value Move{} indicates resignation.
 	Play(Position) (Abs, Move)
 }
 
+// Computer can Play without user input.
 type Computer struct {
 	moveTime time.Duration
 	depth    int
 }
 
+// Play searches pos and returns an evaluation score and a preferred Move.
 func (c Computer) Play(pos Position) (Abs, Move) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, c.moveTime)
@@ -130,11 +135,18 @@ func (c Computer) Play(pos Position) (Abs, Move) {
 	return results[0].score, results[0].move
 }
 
+// Human can Play via user input.
 type Human struct{ s *bufio.Scanner }
 
+// Play reads from standard input and returns the engine's evaluation of Pos and the input Move.
+// It accepts moves as the concatenation of the origin and destination squares,
+// followed by the promoted piece in the case of pawn promotion (e2e4, b1c3, e1g1, d7d8q).
+// It also accepts the following commands:
+// 	go 		immediately play the engine's preferred move
+// 	resign 	resign the game
 func (h Human) Play(pos Position) (Abs, Move) {
 	ch := make(chan Results)
-	// Wait for SearchPosition to return
+	// Wait for SearchPosition to return.
 	defer func() { <-ch }()
 
 	ctx := context.Background()
@@ -158,7 +170,7 @@ func (h Human) Play(pos Position) (Abs, Move) {
 			fmt.Println(err)
 			continue
 		}
-		// get engine's opinion of Human's move
+		// Get the engine's opinion of Human's move.
 		cancel()
 		results := <-ch
 		for _, r := range results {

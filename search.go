@@ -20,9 +20,13 @@ var (
 	}
 )
 
+// Search contains parameters relevant to a position search.
 type Search struct {
+	// allowCutoff describes whether to allow alpha-beta pruning.
 	allowCutoff bool
-	counters    []int
+
+	// counters tracks the number of nodes searched at each depth.
+	counters []int
 }
 
 // SearchPosition searches a Position to the specified depth via iterative deepening and returns the search results.
@@ -110,7 +114,7 @@ func (s *Search) negamax(
 
 // checkTerminal returns an error describing the type of terminal position represented by pos, or nil if pos is not terminal.
 func checkTerminal(pos Position) error {
-	if IsTerminal(pos) {
+	if IsMate(pos) {
 		if IsCheck(pos) {
 			return errCheckmate
 		}
@@ -149,7 +153,7 @@ func deepEnough(rs Results, depth int) bool {
 // A move is pseudo-legal if the square to be moved from contains the specified piece
 // and the piece is capable of moving to the target square if doing so would not put the king in check.
 func IsPseudoLegal(pos Position, move Move) bool {
-	for _, m := range PieceMoves[move.Piece](pos) {
+	for _, m := range PseudoLegalMoves(pos) {
 		if m == move {
 			return true
 		}
@@ -168,11 +172,11 @@ func IsCheck(pos Position) bool {
 	return IsAttacked(pos, pos.KingSquare[pos.ToMove], pos.Opp())
 }
 
-// IsTerminal returns whether or not a Position is checkmate or stalemate.
+// IsMate returns whether or not a Position is checkmate or stalemate.
 // A position is checkmate or stalemate if the side to move has no legal moves.
-func IsTerminal(pos Position) bool { return len(LegalMoves(pos)) == 0 }
+func IsMate(pos Position) bool { return len(LegalMoves(pos)) == 0 }
 
-// Result holds a searched Move along with its evaluated Score,
+// Result holds a searched Move along with its evaluated score,
 // the search depth, and the continuation Results of the search.
 type Result struct {
 	move  Move
