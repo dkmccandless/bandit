@@ -319,3 +319,33 @@ func BenchmarkSearchPosition(b *testing.B) {
 		SearchPosition(ctx, pos, 2)
 	}
 }
+
+func BenchmarkSortFor(b *testing.B) {
+	var unsorted = Results{
+		Result{depth: 5, score: Abs{err: checkmateError(5)}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+		Result{depth: 0, score: Abs{err: checkmateError(0)}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
+		Result{depth: 1, score: Abs{err: checkmateError(1)}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{n: 1}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 3, score: Abs{n: 150}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 3, score: Abs{n: 200}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Queen}},
+		Result{depth: 4, score: Abs{n: -1}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 5, score: Abs{err: errInsufficient}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 2, score: Abs{err: errStalemate}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 8, score: Abs{err: checkmateError(8)}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Knight}},
+		Result{depth: 4, score: Abs{n: -100}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 8, score: Abs{err: errFiftyMove}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{n: 100}, move: Move{Piece: Rook, From: a1, To: a8}},
+		Result{depth: 4, score: Abs{err: checkmateError(4)}, move: Move{Piece: Rook, From: a1, To: a8}},
+	}
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		rs := append(Results{}, unsorted...)
+		b.StartTimer()
+		rs.SortFor(White)
+	}
+}
