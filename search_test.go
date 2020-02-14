@@ -309,6 +309,26 @@ func TestConstrain(t *testing.T) {
 	}
 }
 
+func BenchmarkIsMate(b *testing.B) {
+	for _, benchmark := range []struct{ name, fen string }{
+		{"initial", InitialPositionFEN},
+		{"check", "4k3/4q3/8/8/8/8/8/4K3 w - - 0 1"},
+		{"forced", "k7/8/8/8/8/8/8/K1q5 w - - 0 1"},
+		{"checkmate", "8/8/8/8/8/8/8/Kqk5 w - - 0 1"},
+		{"stalemate", "8/8/8/8/8/8/2q5/K1k5 w - - 0 1"},
+	} {
+		b.Run(benchmark.name, func(b *testing.B) {
+			pos, err := ParseFEN(benchmark.fen)
+			if err != nil {
+				b.Fatal(err)
+			}
+			for i := 0; i < b.N; i++ {
+				IsMate(pos)
+			}
+		})
+	}
+}
+
 func BenchmarkSearchPosition(b *testing.B) {
 	pos, err := ParseFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
 	if err != nil {

@@ -174,7 +174,7 @@ func IsCheck(pos Position) bool {
 
 // IsMate returns whether or not a Position is checkmate or stalemate.
 // A position is checkmate or stalemate if the side to move has no legal moves.
-func IsMate(pos Position) bool { return len(LegalMoves(pos)) == 0 }
+func IsMate(pos Position) bool { return !hasLegalMove(pos) }
 
 // Result holds a searched Move along with its evaluated score,
 // the search depth, and the continuation Results of the search.

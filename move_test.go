@@ -289,6 +289,37 @@ func TestIsAttacked(t *testing.T) {
 	}
 }
 
+func TestHasLegalMove(t *testing.T) {
+	for _, test := range []struct {
+		fen  string
+		want bool
+	}{
+		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", true},  // initial position
+		{"r1b2rkB/1pp1ppbp/2n3p1/8/PpP3nP/8/3Kpp2/1N3BNR w - - 0 13", true}, // legal, not check
+
+		{"8/8/8/8/8/8/q7/K6k w - - 0 1", true},     // check with forced capture
+		{"8/8/8/8/8/q7/8/KB5k w - - 0 1", true},    // check with forced block
+		{"8/8/8/8/8/q7/8/K6k w - - 0 1", true},     // check with forced evasion
+		{"8/8/8/8/8/8/2b5/k2R3K b - - 0 1", true},  // check with capture, block, or evasion
+		{"7k/8/5B2/8/8/8/8/K6R b - - 0 1", true},   // double check
+		{"6qk/8/5B2/8/8/8/8/K6R b - - 0 1", false}, // checkmate by double check, either can be blocked
+		{"R6k/6pp/8/8/8/8/8/K7 b - - 0 1", false},  // checkmate, back rank
+		{"6rk/5Npp/8/8/8/8/8/7K b - - 0 1", false}, // checkmate, smothered
+		{"K6k/2q5/8/8/8/8/8/8 w - - 0 1", false},   // stalemate
+		{"K6k/2q5/8/8/8/8/8/8 b - - 0 1", true},    // would be stalemate if it were the opponent's turn
+		{"8/8/6K1/8/8/8/2k5/8 b - - 0 1", true},    // legal, lone kings
+	} {
+		pos, err := ParseFEN(test.fen)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := hasLegalMove(pos); got != test.want {
+			t.Errorf("hasLegalMove(%v): got %v, want %v", test.fen, got, test.want)
+		}
+	}
+
+}
+
 func TestCanCastleQS(t *testing.T) {
 	for _, test := range []struct {
 		fen  string

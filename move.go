@@ -221,6 +221,27 @@ func LegalMoves(pos Position) []Move {
 	return legal
 }
 
+// hasLegalMove reports whether pos has at least one legal move.
+func hasLegalMove(pos Position) bool {
+	// Generate the pseudolegal moves of each type of piece.
+	// If one of them is legal, return immediately.
+	for _, pl := range [][]Move{
+		PawnMoves(pos),
+		KnightMoves(pos),
+		BishopMoves(pos),
+		RookMoves(pos),
+		QueenMoves(pos),
+		KingMoves(pos),
+	} {
+		for _, m := range pl {
+			if IsLegal(Make(pos, m)) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // rangeBits applies f sequentially to each set bit in board.
 func rangeBits(board Board, f func(Board, Square)) {
 	for bits := board; bits != 0; bits = ResetLS1B(bits) {
