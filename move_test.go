@@ -289,7 +289,7 @@ func TestIsAttacked(t *testing.T) {
 	}
 }
 
-func TestCanQSCastle(t *testing.T) {
+func TestCanCastleQS(t *testing.T) {
 	for _, test := range []struct {
 		fen  string
 		want bool
@@ -316,13 +316,13 @@ func TestCanQSCastle(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := canQSCastle(pos); got != test.want {
-			t.Errorf("canQSCastle(%v): got %v, want %v", test.fen, got, test.want)
+		if got := canCastle(pos, QS); got != test.want {
+			t.Errorf("canCastleQS(%v): got %v, want %v", test.fen, got, test.want)
 		}
 	}
 }
 
-func TestCanKSCastle(t *testing.T) {
+func TestCanCastleKS(t *testing.T) {
 	for _, test := range []struct {
 		fen  string
 		want bool
@@ -349,8 +349,8 @@ func TestCanKSCastle(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := canKSCastle(pos); got != test.want {
-			t.Errorf("canKSCastle(%v): got %v, want %v", test.fen, got, test.want)
+		if got := canCastle(pos, KS); got != test.want {
+			t.Errorf("canCastleKS(%v): got %v, want %v", test.fen, got, test.want)
 		}
 	}
 }

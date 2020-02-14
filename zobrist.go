@@ -25,8 +25,7 @@ var (
 	}
 
 	// Castling rights
-	qsCastleZobrist = [2]Zobrist{0xfb29d82b9fddf9ad, 0xc69b325e3b43c1e6}
-	ksCastleZobrist = [2]Zobrist{0x96dd7a62f6837f56, 0xb920310a317b3639}
+	castleZobrist = [2][2]Zobrist{{0xfb29d82b9fddf9ad, 0xc69b325e3b43c1e6}, {0x96dd7a62f6837f56, 0xb920310a317b3639}}
 
 	// The ability of a pawn on the 4th/5th rank of the given file to make an en passant capture.
 	canEPCaptureZobrist = [8]Zobrist{0xaff9512fa0250760, 0x877d09dd4d2f622a, 0x4934b5d5668a9505, 0xab131aee3c9bcb00, 0x64351fe47f9c649a, 0xc2362d4d1989b0d0, 0x4fdbba027f1ebc77, 0x2083ed95769430c5}
@@ -46,14 +45,11 @@ func (pos Position) Zobrist() Zobrist {
 			z.xorPiece(c, p, sq)
 		}
 	}
-	for c, ok := range pos.QSCastle {
-		if ok {
-			z.xor(qsCastleZobrist[c])
-		}
-	}
-	for c, ok := range pos.KSCastle {
-		if ok {
-			z.xor(ksCastleZobrist[c])
+	for c := range pos.Castle {
+		for side, ok := range pos.Castle[c] {
+			if ok {
+				z.xor(castleZobrist[c][side])
+			}
 		}
 	}
 	if a, b := eligibleEPCapturers(pos); a != 0 {

@@ -113,9 +113,9 @@ func ParseFEN(fen string) (pos Position, err error) {
 	for _, char := range fields[2] {
 		switch RuneToPiece[char] {
 		case Queen:
-			pos.QSCastle[RuneToColor[char]] = true
+			pos.Castle[RuneToColor[char]][QS] = true
 		case King:
-			pos.KSCastle[RuneToColor[char]] = true
+			pos.Castle[RuneToColor[char]][KS] = true
 		}
 	}
 
@@ -184,19 +184,19 @@ func FEN(pos Position) string {
 	case Black:
 		s += " b "
 	}
-	if pos.KSCastle[White] {
+	if pos.Castle[White][KS] {
 		s += "K"
 	}
-	if pos.QSCastle[White] {
+	if pos.Castle[White][QS] {
 		s += "Q"
 	}
-	if pos.KSCastle[Black] {
+	if pos.Castle[Black][KS] {
 		s += "k"
 	}
-	if pos.QSCastle[Black] {
+	if pos.Castle[Black][QS] {
 		s += "q"
 	}
-	if !(pos.KSCastle[White] || pos.QSCastle[White] || pos.KSCastle[Black] || pos.QSCastle[Black]) {
+	if !(pos.Castle[White][KS] || pos.Castle[White][QS] || pos.Castle[Black][KS] || pos.Castle[Black][QS]) {
 		s += "-"
 	}
 	if pos.ep == 0 {

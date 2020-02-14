@@ -23,11 +23,20 @@ func (m Move) IsDouble() bool {
 	return m.Piece == Pawn && ((m.From.Rank() == 1 && m.To.Rank() == 3) || m.From.Rank() == 6 && m.To.Rank() == 4)
 }
 
-// IsQSCastle reports whether m castles queenside.
-func (m Move) IsQSCastle() bool { return m.Piece == King && m.From-m.To == 2 }
-
-// IsKSCastle reports whether m castles kingside.
-func (m Move) IsKSCastle() bool { return m.Piece == King && m.To-m.From == 2 }
+// IsCastle reports whether m castles and to which side.
+// If ok is true, side reports the Side to which m castles.
+func (m Move) IsCastle() (side Side, ok bool) {
+	switch {
+	case m.Piece != King:
+		return
+	case m.From-m.To == 2:
+		return QS, true
+	case m.To-m.From == 2:
+		return KS, true
+	default:
+		return
+	}
+}
 
 // Make applies m to pos and reports the resulting Position.
 // Behavior is undefined when m is illegal in pos.
@@ -55,29 +64,31 @@ func Make(pos Position, m Move) Position {
 	update(pos.ToMove, m.Piece, m.From)
 	update(pos.ToMove, m.Piece, m.To)
 
-	switch {
-	case m.IsCapture():
+	if m.IsCapture() {
 		// Remove the captured piece from CaptureSquare, not To
 		update(pos.Opp(), m.CapturePiece, m.CaptureSquare)
 		// Lose the relevant castling right
 		switch {
 		case (pos.ToMove == Black && m.CaptureSquare == a1) || (pos.ToMove == White && m.CaptureSquare == a8):
-			if pos.QSCastle[pos.Opp()] {
-				pos.z.xor(qsCastleZobrist[pos.Opp()])
+			if pos.Castle[pos.Opp()][QS] {
+				pos.z.xor(castleZobrist[pos.Opp()][QS])
 			}
-			pos.QSCastle[pos.Opp()] = false
+			pos.Castle[pos.Opp()][QS] = false
 		case (pos.ToMove == Black && m.CaptureSquare == h1) || (pos.ToMove == White && m.CaptureSquare == h8):
-			if pos.KSCastle[pos.Opp()] {
-				pos.z.xor(ksCastleZobrist[pos.Opp()])
+			if pos.Castle[pos.Opp()][KS] {
+				pos.z.xor(castleZobrist[pos.Opp()][KS])
 			}
-			pos.KSCastle[pos.Opp()] = false
+			pos.Castle[pos.Opp()][KS] = false
 		}
-	case m.IsQSCastle():
+	}
+
+	switch side, ok := m.IsCastle(); {
+	case ok && side == QS:
 		// Move the castling rook
 		rookFrom, rookTo := m.From-4, m.From-1
 		update(pos.ToMove, Rook, rookFrom)
 		update(pos.ToMove, Rook, rookTo)
-	case m.IsKSCastle():
+	case ok && side == KS:
 		// Move the castling rook
 		rookFrom, rookTo := m.From+3, m.From+1
 		update(pos.ToMove, Rook, rookFrom)
@@ -94,27 +105,27 @@ func Make(pos Position, m Move) Position {
 	case King:
 		// Update KingSquare and forfeit all castling rights
 		pos.KingSquare[pos.ToMove] = m.To
-		if pos.QSCastle[pos.ToMove] {
-			pos.z.xor(qsCastleZobrist[pos.ToMove])
+		if pos.Castle[pos.ToMove][QS] {
+			pos.z.xor(castleZobrist[pos.ToMove][QS])
 		}
-		pos.QSCastle[pos.ToMove] = false
-		if pos.KSCastle[pos.ToMove] {
-			pos.z.xor(ksCastleZobrist[pos.ToMove])
+		pos.Castle[pos.ToMove][QS] = false
+		if pos.Castle[pos.ToMove][KS] {
+			pos.z.xor(castleZobrist[pos.ToMove][KS])
 		}
-		pos.KSCastle[pos.ToMove] = false
+		pos.Castle[pos.ToMove][KS] = false
 	case Rook:
 		// Forfeit the relevant castling right
 		switch {
 		case (pos.ToMove == White && m.From == a1) || (pos.ToMove == Black && m.From == a8):
-			if pos.QSCastle[pos.ToMove] {
-				pos.z.xor(qsCastleZobrist[pos.ToMove])
+			if pos.Castle[pos.ToMove][QS] {
+				pos.z.xor(castleZobrist[pos.ToMove][QS])
 			}
-			pos.QSCastle[pos.ToMove] = false
+			pos.Castle[pos.ToMove][QS] = false
 		case (pos.ToMove == White && m.From == h1) || (pos.ToMove == Black && m.From == h8):
-			if pos.KSCastle[pos.ToMove] {
-				pos.z.xor(ksCastleZobrist[pos.ToMove])
+			if pos.Castle[pos.ToMove][KS] {
+				pos.z.xor(castleZobrist[pos.ToMove][KS])
 			}
-			pos.KSCastle[pos.ToMove] = false
+			pos.Castle[pos.ToMove][KS] = false
 		}
 	}
 
@@ -280,45 +291,26 @@ func QueenMoves(pos Position) []Move { return pMoves(pos, Queen) }
 func KingMoves(pos Position) []Move {
 	moves := pMoves(pos, King)
 	from := pos.KingSquare[pos.ToMove]
-	if canQSCastle(pos) {
+	if canCastle(pos, QS) {
 		moves = append(moves, Move{From: from, To: from - 2, Piece: King})
 	}
-	if canKSCastle(pos) {
+	if canCastle(pos, KS) {
 		moves = append(moves, Move{From: from, To: from + 2, Piece: King})
 	}
 	return moves
 }
 
-// canQSCastle returns whether castling queenside is legal in pos.
-func canQSCastle(pos Position) bool {
-	if !pos.QSCastle[pos.ToMove] {
+// canCastle returns whether castling to side is legal in pos.
+func canCastle(pos Position, side Side) bool {
+	if !pos.Castle[pos.ToMove][side] {
 		return false
 	}
 	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	if QSCastleEmptySquares[pos.ToMove]&^empty != 0 {
+	if CastleEmptySquares[pos.ToMove][side]&^empty != 0 {
 		return false
 	}
 	var attacked bool
-	rangeBits(QSCastleKingSquares[pos.ToMove], func(_ Board, s Square) {
-		if attacked {
-			return
-		}
-		attacked = IsAttacked(pos, s, pos.Opp())
-	})
-	return !attacked
-}
-
-// canKSCastle returns whether castling kingside is legal in pos.
-func canKSCastle(pos Position) bool {
-	if !pos.KSCastle[pos.ToMove] {
-		return false
-	}
-	empty := ^pos.b[White][All] & ^pos.b[Black][All]
-	if KSCastleEmptySquares[pos.ToMove]&^empty != 0 {
-		return false
-	}
-	var attacked bool
-	rangeBits(KSCastleKingSquares[pos.ToMove], func(_ Board, s Square) {
+	rangeBits(CastleKingSquares[pos.ToMove][side], func(_ Board, s Square) {
 		if attacked {
 			return
 		}
@@ -481,10 +473,10 @@ func eligibleEPCapturers(pos Position) (Square, Square) {
 
 // LongAlgebraic returns the description of a Move in long algebraic notation without check.
 func LongAlgebraic(m Move) string {
-	if m.IsQSCastle() {
+	switch side, ok := m.IsCastle(); {
+	case ok && side == QS:
 		return "O-O-O"
-	}
-	if m.IsKSCastle() {
+	case ok && side == KS:
 		return "O-O"
 	}
 	var s string
@@ -521,10 +513,10 @@ func ParseUserMove(s string) (from, to Square, err error) {
 // Algebraic returns the description of a Move in standard algebraic notation.
 func Algebraic(pos Position, m Move) string {
 	var s string
-	switch {
-	case m.IsQSCastle():
+	switch side, ok := m.IsCastle(); {
+	case ok && side == QS:
 		s = "O-O-O"
-	case m.IsKSCastle():
+	case ok && side == KS:
 		s = "O-O"
 	default:
 		if m.Piece == Pawn {

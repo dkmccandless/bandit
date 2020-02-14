@@ -132,28 +132,28 @@ var (
 	fileLetters = []string{"a", "b", "c", "d", "e", "f", "g", "h"}
 	rankNumbers = []string{"1", "2", "3", "4", "5", "6", "7", "8"}
 
-	// QSCastleEmptySquares describes the squares that must be empty when castling queenside.
-	QSCastleEmptySquares = []Board{
-		(BFile | CFile | DFile) & Rank1,
-		(BFile | CFile | DFile) & Rank8,
+	// CastleEmptySquares describes the squares that must be empty when castling.
+	CastleEmptySquares = [][]Board{
+		{
+			(BFile | CFile | DFile) & Rank1,
+			(FFile | GFile) & Rank1,
+		},
+		{
+			(BFile | CFile | DFile) & Rank8,
+			(FFile | GFile) & Rank8,
+		},
 	}
 
-	// KSCastleEmptySquares describes the squares that must be empty when castling kingside.
-	KSCastleEmptySquares = []Board{
-		(FFile | GFile) & Rank1,
-		(FFile | GFile) & Rank8,
-	}
-
-	// QSCastleKingSquares describes the squares that the king occupies during queenside castling.
-	QSCastleKingSquares = []Board{
-		(CFile | DFile | EFile) & Rank1,
-		(CFile | DFile | EFile) & Rank8,
-	}
-
-	// KSCastleKingSquares describes the squares that the king occupies during kingside castling.
-	KSCastleKingSquares = []Board{
-		(EFile | FFile | GFile) & Rank1,
-		(EFile | FFile | GFile) & Rank8,
+	// CastleKingSquares describes the squares that the king occupies during castling.
+	CastleKingSquares = [][]Board{
+		{
+			(CFile | DFile | EFile) & Rank1,
+			(EFile | FFile | GFile) & Rank1,
+		},
+		{
+			(CFile | DFile | EFile) & Rank8,
+			(EFile | FFile | GFile) & Rank8,
+		},
 	}
 )
 
@@ -188,12 +188,19 @@ const (
 
 var pieceLetter = []string{"", "P", "N", "B", "R", "Q", "K"}
 
+// Side represents the two sides of the board to which the king can castle.
+type Side byte
+
+const (
+	QS Side = iota
+	KS
+)
+
 // Position contains all information necessary to specify the current state of a game.
 type Position struct {
-	// QSCastle and KSCastle describe queenside and kingside castling rights.
-	// True indicates that the indexed Color retains the option of castling, if it is legal to do so.
-	QSCastle [2]bool
-	KSCastle [2]bool
+	// Castle describes castling rights.
+	// Castle[c][side] indicates whether the c retains the option of castling to side, if it is legal to do so.
+	Castle [2][2]bool
 
 	// ep is the unique square, if any, to which an en passant capture can be played by the side to move.
 	// Valid values are in the ranges [16, 24) (the 3rd rank, with Black to move following a White pawn push)
