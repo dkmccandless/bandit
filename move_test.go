@@ -276,68 +276,67 @@ func TestHasLegalMove(t *testing.T) {
 
 }
 
-func TestCanCastleQS(t *testing.T) {
+func TestCanCastle(t *testing.T) {
 	for _, test := range []struct {
 		fen  string
-		want bool
+		want [2]bool
 	}{
-		{"4k3/8/8/8/8/8/8/4K2R w Q - 0 1", true},
-		{"4k3/8/8/8/8/8/8/4K2R w - - 0 1", false},
-		{"4k3/8/8/8/8/8/8/4K2R b Q - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4K2R w Q - 0 1", true},
-		{"1r2k3/8/8/8/8/8/8/4K2R w Q - 0 1", true},
-		{"3rk3/8/8/8/8/8/8/4K2R w Q - 0 1", false},
-		{"4k3/8/8/8/8/8/8/RN2K3 w Q - 0 1", false},
-		{"4k3/8/8/8/8/8/8/R3K1N1 w Q - 0 1", true},
+		{"4k3/8/8/8/8/8/8/4K3 w - - 0 1", [2]bool{false, false}},     // kings only
+		{"4k3/8/8/8/8/8/8/R3K3 w - - 0 1", [2]bool{false, false}},    // queen's rook, no right
+		{"4k3/8/8/8/8/8/8/R3K3 w Q - 0 1", [2]bool{true, false}},     // queen's rook with right
+		{"4k3/8/8/8/8/8/8/4K2R w - - 0 1", [2]bool{false, false}},    // king's rook, no right
+		{"4k3/8/8/8/8/8/8/4K2R w K - 0 1", [2]bool{false, true}},     // kings rook with right
+		{"4k3/8/8/8/8/8/8/R3K2R w - - 0 1", [2]bool{false, false}},   // both rooks, no rights
+		{"4k3/8/8/8/8/8/8/R3K2R w Q - 0 1", [2]bool{true, false}},    // both rooks, QS right
+		{"4k3/8/8/8/8/8/8/R3K2R w K - 0 1", [2]bool{false, true}},    // both rooks, KS right
+		{"4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{true, true}},    // both rooks with rights
+		{"r3k2r/8/8/8/8/8/8/4K3 w kq - 0 1", [2]bool{false, false}},  // opponent can castle
+		{"4k3/8/8/8/8/8/8/RN2K2R w KQ - 0 1", [2]bool{false, true}},  // b1 occupied
+		{"4k3/8/8/8/8/8/8/R1B1K2R w KQ - 0 1", [2]bool{false, true}}, // c1 occupied
+		{"4k3/8/8/8/8/8/8/R2QK2R w KQ - 0 1", [2]bool{false, true}},  // d1 occupied
+		{"4k3/8/8/8/8/8/8/R3KB1R w KQ - 0 1", [2]bool{true, false}},  // f1 occupied
+		{"4k3/8/8/8/8/8/8/R3K1NR w KQ - 0 1", [2]bool{true, false}},  // g1 occupied
+		{"4k2b/8/8/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{true, true}},   // a1 attacked
+		{"4k3/7b/8/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{true, true}},   // b1 attacked
+		{"4k3/8/7b/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{false, true}},  // c1 attacked
+		{"4k3/8/8/7b/8/8/8/R3K2R w KQ - 0 1", [2]bool{false, true}},  // d1 attacked
+		{"4k3/8/8/b7/8/8/8/R3K2R w KQ - 0 1", [2]bool{false, false}}, // e1 attacked
+		{"4k3/8/b7/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{true, false}},  // f1 attacked
+		{"4k3/b7/8/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{true, false}},  // g1 attacked
+		{"b3k3/8/8/8/8/8/8/R3K2R w KQ - 0 1", [2]bool{true, true}},   // h1 attacked
 
-		{"4k2r/8/8/8/8/8/8/4K3 b q - 0 1", true},
-		{"4k2r/8/8/8/8/8/8/4K3 b - - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4K3 w q - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4K2R b q - 0 1", true},
-		{"4k2r/8/8/8/8/8/8/1R2K3 b q - 0 1", true},
-		{"4k2r/8/8/8/8/8/8/3RK3 b q - 0 1", false},
-		{"rn2k3/8/8/8/8/8/8/4K3 b q - 0 1", false},
-		{"r3k1n1/8/8/8/8/8/8/4K3 b q - 0 1", true},
+		{"4k3/8/8/8/8/8/8/4K3 b - - 0 1", [2]bool{false, false}},     // kings only
+		{"r3k3/8/8/8/8/8/8/4K3 b - - 0 1", [2]bool{false, false}},    // queen's rook, no right
+		{"r3k3/8/8/8/8/8/8/4K3 b q - 0 1", [2]bool{true, false}},     // queen's rook with right
+		{"4k2r/8/8/8/8/8/8/4K3 b - - 0 1", [2]bool{false, false}},    // king's rook, no right
+		{"4k2r/8/8/8/8/8/8/4K3 b k - 0 1", [2]bool{false, true}},     // kings rook with right
+		{"r3k2r/8/8/8/8/8/8/4K3 b - - 0 1", [2]bool{false, false}},   // both rooks, no rights
+		{"r3k2r/8/8/8/8/8/8/4K3 b q - 0 1", [2]bool{true, false}},    // both rooks, QS right
+		{"r3k2r/8/8/8/8/8/8/4K3 b k - 0 1", [2]bool{false, true}},    // both rooks, KS right
+		{"r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1", [2]bool{true, true}},    // both rooks with rights
+		{"4k3/8/8/8/8/8/8/R3K2R b KQ - 0 1", [2]bool{false, false}},  // opponent can castle
+		{"rn2k2r/8/8/8/8/8/8/4K3 b kq - 0 1", [2]bool{false, true}},  // b8 occupied
+		{"r1b1k2r/8/8/8/8/8/8/4K3 b kq - 0 1", [2]bool{false, true}}, // c8 occupied
+		{"r2qk2r/8/8/8/8/8/8/4K3 b kq - 0 1", [2]bool{false, true}},  // d8 occupied
+		{"r3kb1r/8/8/8/8/8/8/4K3 b kq - 0 1", [2]bool{true, false}},  // f8 occupied
+		{"r3k1nr/8/8/8/8/8/8/4K3 b kq - 0 1", [2]bool{true, false}},  // g8 occupied
+		{"r3k2r/8/8/8/8/8/8/4K2B b kq - 0 1", [2]bool{true, true}},   // a8 attacked
+		{"r3k2r/8/8/8/8/8/7B/4K3 b kq - 0 1", [2]bool{true, true}},   // b8 attacked
+		{"r3k2r/8/8/8/8/7B/8/4K3 b kq - 0 1", [2]bool{false, true}},  // c8 attacked
+		{"r3k2r/8/8/8/7B/8/8/4K3 b kq - 0 1", [2]bool{false, true}},  // d8 attacked
+		{"r3k2r/8/8/8/B7/8/8/4K3 b kq - 0 1", [2]bool{false, false}}, // e8 attacked
+		{"r3k2r/8/8/8/8/B7/8/4K3 b kq - 0 1", [2]bool{true, false}},  // f8 attacked
+		{"r3k2r/8/8/8/8/8/B7/4K3 b kq - 0 1", [2]bool{true, false}},  // g8 attacked
+		{"r3k2r/8/8/8/8/8/8/B3K3 b kq - 0 1", [2]bool{true, true}},   // h8 attacked
 	} {
 		pos, err := ParseFEN(test.fen)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := canCastle(pos, QS); got != test.want {
-			t.Errorf("canCastleQS(%v): got %v, want %v", test.fen, got, test.want)
-		}
-	}
-}
-
-func TestCanCastleKS(t *testing.T) {
-	for _, test := range []struct {
-		fen  string
-		want bool
-	}{
-		{"4k3/8/8/8/8/8/8/4K2R w K - 0 1", true},
-		{"4k3/8/8/8/8/8/8/4K2R w - - 0 1", false},
-		{"4k3/8/8/8/8/8/8/4K2R b K - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4K2R w K - 0 1", true},
-		{"4k1r1/8/8/8/8/8/8/4K2R w K - 0 1", false},
-		{"4kr2/8/8/8/8/8/8/4K2R w K - 0 1", false},
-		{"4k3/8/8/8/8/8/8/4K1NR w K - 0 1", false},
-		{"4k3/8/8/8/8/8/8/RN2K2R w K - 0 1", true},
-
-		{"4k2r/8/8/8/8/8/8/4K3 b k - 0 1", true},
-		{"4k2r/8/8/8/8/8/8/4K3 b - - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4K3 w k - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4K2R b k - 0 1", true},
-		{"4k2r/8/8/8/8/8/8/4K1R1 b k - 0 1", false},
-		{"4k2r/8/8/8/8/8/8/4KR2 b k - 0 1", false},
-		{"4k1nr/8/8/8/8/8/8/4K3 b k - 0 1", false},
-		{"rn2k2r/8/8/8/8/8/8/4K3 b k - 0 1", true},
-	} {
-		pos, err := ParseFEN(test.fen)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := canCastle(pos, KS); got != test.want {
-			t.Errorf("canCastleKS(%v): got %v, want %v", test.fen, got, test.want)
+		for _, side := range []Side{QS, KS} {
+			if got := canCastle(pos, side); got != test.want[side] {
+				t.Errorf("canCastle(%v, %v): got %v, want %v", test.fen, side, got, test.want[side])
+			}
 		}
 	}
 }
