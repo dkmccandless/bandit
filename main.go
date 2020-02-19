@@ -182,7 +182,8 @@ func (h Human) Play(pos Position) (Abs, Move) {
 	}
 }
 
-func (h Human) readMove(pos Position) (m Move, err error) {
+func (h Human) readMove(pos Position) (Move, error) {
+	var m Move
 	fmt.Printf("> ")
 	if ok := h.s.Scan(); !ok {
 		return m, h.s.Err()
@@ -191,7 +192,7 @@ func (h Human) readMove(pos Position) (m Move, err error) {
 	var promote Piece
 	switch {
 	case text == "resign":
-		return
+		return m, nil
 	case text == "go":
 		return m, ErrGo
 	case len(text) == 5:
@@ -228,8 +229,11 @@ func (h Human) readMove(pos Position) (m Move, err error) {
 	if promote != None && (p != Pawn || (pos.ToMove == White && to.Rank() != 7) || (pos.ToMove == Black && to.Rank() != 0)) {
 		return m, fmt.Errorf("illegal promotion")
 	}
-	// TODO: en passant
-	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, PromotePiece: promote}
+	var ep bool
+	if pos.ep != 0 && to == pos.ep && cp == Pawn {
+		ep = true
+	}
+	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, EP: ep, PromotePiece: promote}
 	if !IsPseudoLegal(pos, m) || !IsLegal(Make(pos, m)) {
 		return m, fmt.Errorf("illegal move")
 	}
