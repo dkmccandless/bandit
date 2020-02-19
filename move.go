@@ -4,12 +4,12 @@ import "fmt"
 
 // Move contains the information needed to transition from one Position to another.
 type Move struct {
-	From          Square
-	To            Square // invariant: not equal to From
-	Piece         Piece  // the moving Piece; invariant: not None
-	CapturePiece  Piece  // the Piece being captured, or else None
-	CaptureSquare Square // differs from To in the case of en passant captures
-	PromotePiece  Piece  // the Piece being promoted to, or else None
+	From         Square
+	To           Square // invariant: not equal to From
+	Piece        Piece  // the moving Piece; invariant: not None
+	CapturePiece Piece  // the Piece being captured, or else None
+	EP           bool   // whether the Move is an en passant capture
+	PromotePiece Piece  // the Piece being promoted to, or else None
 }
 
 // IsCapture reports whether m is a capture.
@@ -65,16 +65,20 @@ func Make(pos Position, m Move) Position {
 	update(pos.ToMove, m.Piece, m.To)
 
 	if m.IsCapture() {
-		// Remove the captured piece from CaptureSquare, not To
-		update(pos.Opp(), m.CapturePiece, m.CaptureSquare)
+		captureSquare := m.To
+		if m.EP {
+			// The captured pawn is one square centerward of To.
+			captureSquare ^= 8
+		}
+		update(pos.Opp(), m.CapturePiece, captureSquare)
 		// Lose the relevant castling right
 		switch {
-		case (pos.ToMove == Black && m.CaptureSquare == a1) || (pos.ToMove == White && m.CaptureSquare == a8):
+		case (pos.ToMove == Black && m.To == a1) || (pos.ToMove == White && m.To == a8):
 			if pos.Castle[pos.Opp()][QS] {
 				pos.z.xor(castleZobrist[pos.Opp()][QS])
 			}
 			pos.Castle[pos.Opp()][QS] = false
-		case (pos.ToMove == Black && m.CaptureSquare == h1) || (pos.ToMove == White && m.CaptureSquare == h8):
+		case (pos.ToMove == Black && m.To == h1) || (pos.ToMove == White && m.To == h8):
 			if pos.Castle[pos.Opp()][KS] {
 				pos.z.xor(castleZobrist[pos.Opp()][KS])
 			}
@@ -278,11 +282,11 @@ func PawnMoves(pos Position) []Move {
 			_, cp := pos.PieceOn(to)
 			if to.Rank() == promoteRank {
 				for _, pp := range []Piece{Queen, Rook, Bishop, Knight} {
-					moves = append(moves, Move{From: from, To: to, Piece: Pawn, CapturePiece: cp, CaptureSquare: to, PromotePiece: pp})
+					moves = append(moves, Move{From: from, To: to, Piece: Pawn, CapturePiece: cp, PromotePiece: pp})
 				}
 				return
 			}
-			moves = append(moves, Move{From: from, To: to, Piece: Pawn, CapturePiece: cp, CaptureSquare: to})
+			moves = append(moves, Move{From: from, To: to, Piece: Pawn, CapturePiece: cp})
 		})
 	})
 	if pos.ep != 0 {
@@ -290,7 +294,7 @@ func PawnMoves(pos Position) []Move {
 		epcs := pos.ep ^ 8
 		epSources := west(epcs.Board()) | east(epcs.Board())
 		rangeBits(epSources&pos.b[pos.ToMove][Pawn], func(_ Board, s Square) {
-			moves = append(moves, Move{From: s, To: pos.ep, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: epcs})
+			moves = append(moves, Move{From: s, To: pos.ep, Piece: Pawn, CapturePiece: Pawn, EP: true})
 		})
 	}
 	return moves
@@ -363,7 +367,6 @@ func pMoves(pos Position, p Piece) []Move {
 			if t&pos.b[pos.Opp()][All] != 0 {
 				_, capturePiece := pos.PieceOn(to)
 				m.CapturePiece = capturePiece
-				m.CaptureSquare = to
 			}
 			moves = append(moves, m)
 		})

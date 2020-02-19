@@ -228,11 +228,8 @@ func (h Human) readMove(pos Position) (m Move, err error) {
 	if promote != None && (p != Pawn || (pos.ToMove == White && to.Rank() != 7) || (pos.ToMove == Black && to.Rank() != 0)) {
 		return m, fmt.Errorf("illegal promotion")
 	}
-	var cs Square
-	if cp != None {
-		cs = to
-	} // TODO: en passant
-	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, CaptureSquare: cs, PromotePiece: promote}
+	// TODO: en passant
+	m = Move{From: from, To: to, Piece: p, CapturePiece: cp, PromotePiece: promote}
 	if !IsPseudoLegal(pos, m) || !IsLegal(Make(pos, m)) {
 		return m, fmt.Errorf("illegal move")
 	}

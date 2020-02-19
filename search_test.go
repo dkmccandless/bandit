@@ -43,10 +43,10 @@ func TestIsPseudoLegal(t *testing.T) {
 	}{
 		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: f2, Piece: King}, true},
 		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: g2, To: g4, Piece: Pawn}, true},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: e5}, true},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook, CaptureSquare: a8}, true},
+		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, EP: true}, true},
+		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook}, true},
 		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}, true},
-		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}, true},
+		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}, true},
 		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: c1, Piece: King}, true},
 		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: g1, Piece: King}, true},
 		{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e2, To: e4, Piece: Pawn}, false},                       // no piece on From square
@@ -124,7 +124,7 @@ func TestSortFor(t *testing.T) {
 	var (
 		rs = Results{
 			Result{depth: 5, score: Abs{err: checkmateError(5)}, move: Move{Piece: Rook, From: a1, To: a8}},
-			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, PromotePiece: Rook}},
 			Result{depth: 0, score: Abs{err: checkmateError(0)}, move: Move{Piece: Rook, From: a1, To: a8}},
 			Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
 			Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
@@ -150,7 +150,7 @@ func TestSortFor(t *testing.T) {
 				Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
 				Result{depth: 4, score: Abs{n: 100}, move: Move{Piece: Rook, From: a1, To: a8}},
 				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
-				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, PromotePiece: Rook}},
 				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Knight}},
 				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Queen}},
 				Result{depth: 4, score: Abs{n: 1}, move: Move{Piece: Rook, From: a1, To: a8}},
@@ -176,7 +176,7 @@ func TestSortFor(t *testing.T) {
 				Result{depth: 8, score: Abs{err: errFiftyMove}, move: Move{Piece: Rook, From: a1, To: a8}},    //
 				Result{depth: 4, score: Abs{n: 1}, move: Move{Piece: Rook, From: a1, To: a8}},
 				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},
-				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, PromotePiece: Rook}},
 				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Knight}},
 				Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: d8, PromotePiece: Queen}},
 				Result{depth: 4, score: Abs{n: 100}, move: Move{Piece: Rook, From: a1, To: a8}},
@@ -343,7 +343,7 @@ func BenchmarkSearchPosition(b *testing.B) {
 func BenchmarkSortFor(b *testing.B) {
 	var unsorted = Results{
 		Result{depth: 5, score: Abs{err: checkmateError(5)}, move: Move{Piece: Rook, From: a1, To: a8}},
-		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, CaptureSquare: c8, PromotePiece: Rook}},
+		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: d7, To: c8, CapturePiece: Bishop, PromotePiece: Rook}},
 		Result{depth: 0, score: Abs{err: checkmateError(0)}, move: Move{Piece: Rook, From: a1, To: a8}},
 		Result{depth: 9, score: Abs{err: checkmateError(9)}, move: Move{Piece: Rook, From: a1, To: a8}},
 		Result{depth: 4, score: Abs{n: 50}, move: Move{Piece: Pawn, From: f6, To: f7}},

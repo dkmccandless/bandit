@@ -397,10 +397,10 @@ var algebraicTests = []struct {
 	{InitialPositionFEN, Move{From: g1, To: f3, Piece: Knight}, "Nf3", "Ng1-f3"},
 	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: f2, Piece: King}, "Kf2", "Ke1-f2"},
 	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: g2, To: g4, Piece: Pawn}, "g4", "g2-g4"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: e5}, "dxe6", "d5xe6"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook, CaptureSquare: a8}, "Rxa8+", "Ra1xa8"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, EP: true}, "dxe6", "d5xe6"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook}, "Rxa8+", "Ra1xa8"},
 	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}, "b8Q+", "b7-b8Q"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}, "bxa8Q+", "b7xa8Q"},
+	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}, "bxa8Q+", "b7xa8Q"},
 	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: c1, Piece: King}, "O-O-O", "O-O-O"},
 	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: g1, Piece: King}, "O-O+", "O-O"},
 	{"r4k2/1P6/3P2Q1/4p3/8/8/6P1/R3K2R w KQ - 0 1", Move{From: e1, To: g1, Piece: King}, "O-O#", "O-O"},
@@ -449,18 +449,18 @@ func TestAlgebraic(t *testing.T) {
 
 func BenchmarkConstructMove(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}
+		_ = Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}
 	}
 }
 
 func BenchmarkReadMove(b *testing.B) {
-	m := Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}
+	m := Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}
 	for i := 0; i < b.N; i++ {
 		_ = m.From
 		_ = m.To
 		_ = m.Piece
 		_ = m.CapturePiece
-		_ = m.CaptureSquare
+		_ = m.EP
 		_ = m.PromotePiece
 	}
 }
@@ -476,10 +476,10 @@ func BenchmarkMake(b *testing.B) {
 	}{
 		{"quiet", Move{From: e1, To: f2, Piece: King}},
 		{"double", Move{From: g2, To: g4, Piece: Pawn}},
-		{"en passant", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, CaptureSquare: e5}},
-		{"capture", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook, CaptureSquare: a8}},
+		{"en passant", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, EP: true}},
+		{"capture", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook}},
 		{"promotion", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}},
-		{"capture promotion", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, CaptureSquare: a8, PromotePiece: Queen}},
+		{"capture promotion", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}},
 		{"castle queenside", Move{From: e1, To: c1, Piece: King}},
 		{"castle kingside", Move{From: e1, To: g1, Piece: King}},
 	} {
