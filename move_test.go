@@ -4,263 +4,219 @@ import "testing"
 
 const aroundD4 = (CFile|DFile|EFile)&(Rank3|Rank4|Rank5) ^ (DFile & Rank4)
 
-func TestSouthAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), 0},
-		{h1.Board(), ^h1.Board(), 0},
-		{a8.Board(), ^a8.Board(), AFile ^ a8.Board()},
-		{h8.Board(), ^h8.Board(), HFile ^ h8.Board()},
-		{d4.Board(), 0, d3.Board()},
-		{d4.Board(), aroundD4, d3.Board() | d2.Board()},
+type boardsTest struct{ input, empty, want Board }
+
+func TestAttackFill(t *testing.T) {
+	for _, dir := range []struct {
+		f     func(Board) Board
+		name  string
+		tests []boardsTest
+	}{
+		{
+			south, "south", []boardsTest{
+				{a1.Board(), ^a1.Board(), 0},
+				{h1.Board(), ^h1.Board(), 0},
+				{a8.Board(), ^a8.Board(), AFile ^ a8.Board()},
+				{h8.Board(), ^h8.Board(), HFile ^ h8.Board()},
+				{d4.Board(), 0, d3.Board()},
+				{d4.Board(), aroundD4, d3.Board() | d2.Board()},
+			},
+		},
+		{
+			west, "west", []boardsTest{
+				{a1.Board(), ^a1.Board(), 0},
+				{h1.Board(), ^h1.Board(), Rank1 ^ h1.Board()},
+				{a8.Board(), ^a8.Board(), 0},
+				{h8.Board(), ^h8.Board(), Rank8 ^ h8.Board()},
+				{d4.Board(), 0, c4.Board()},
+				{d4.Board(), aroundD4, c4.Board() | b4.Board()},
+			},
+		},
+		{
+			east, "east", []boardsTest{
+				{a1.Board(), ^a1.Board(), Rank1 ^ a1.Board()},
+				{h1.Board(), ^h1.Board(), 0},
+				{a8.Board(), ^a8.Board(), Rank8 ^ a8.Board()},
+				{h8.Board(), ^h8.Board(), 0},
+				{d4.Board(), 0, e4.Board()},
+				{d4.Board(), aroundD4, e4.Board() | f4.Board()},
+			},
+		},
+		{
+			north, "north", []boardsTest{
+				{a1.Board(), ^a1.Board(), AFile ^ a1.Board()},
+				{h1.Board(), ^h1.Board(), HFile ^ h1.Board()},
+				{a8.Board(), ^a8.Board(), 0},
+				{h8.Board(), ^h8.Board(), 0},
+				{d4.Board(), 0, d5.Board()},
+				{d4.Board(), aroundD4, d5.Board() | d6.Board()},
+			},
+		},
+		{
+			southwest, "southwest", []boardsTest{
+				{a1.Board(), ^a1.Board(), 0},
+				{h1.Board(), ^h1.Board(), 0},
+				{a8.Board(), ^a8.Board(), 0},
+				{h8.Board(), ^h8.Board(), LongDiagonal ^ h8.Board()},
+				{d4.Board(), 0, c3.Board()},
+				{d4.Board(), aroundD4, c3.Board() | b2.Board()},
+			},
+		},
+		{
+			southeast, "southeast", []boardsTest{
+				{a1.Board(), ^a1.Board(), 0},
+				{h1.Board(), ^h1.Board(), 0},
+				{a8.Board(), ^a8.Board(), LongAntiDiagonal ^ a8.Board()},
+				{h8.Board(), ^h8.Board(), 0},
+				{d4.Board(), 0, e3.Board()},
+				{d4.Board(), aroundD4, e3.Board() | f2.Board()},
+			},
+		},
+		{
+			northwest, "northwest", []boardsTest{
+				{a1.Board(), ^a1.Board(), 0},
+				{h1.Board(), ^h1.Board(), LongAntiDiagonal ^ h1.Board()},
+				{a8.Board(), ^a8.Board(), 0},
+				{h8.Board(), ^h8.Board(), 0},
+				{d4.Board(), 0, c5.Board()},
+				{d4.Board(), aroundD4, c5.Board() | b6.Board()},
+			},
+		},
+		{
+			northeast, "northeast", []boardsTest{
+				{a1.Board(), ^a1.Board(), LongDiagonal ^ a1.Board()},
+				{h1.Board(), ^h1.Board(), 0},
+				{a8.Board(), ^a8.Board(), 0},
+				{h8.Board(), ^h8.Board(), 0},
+				{d4.Board(), 0, e5.Board()},
+				{d4.Board(), aroundD4, e5.Board() | f6.Board()},
+			},
+		},
 	} {
-		if got := attackFill(test.input, test.empty, south); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, south): got %016x, want %016x", test.input, test.empty, got, test.want)
+		for _, test := range dir.tests {
+			if got := attackFill(test.input, test.empty, dir.f); got != test.want {
+				t.Errorf("attackFill(%016x, %016x, %v): got %016x, want %016x", test.input, test.empty, dir.name, got, test.want)
+			}
 		}
 	}
 }
 
-func TestWestAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), 0},
-		{h1.Board(), ^h1.Board(), Rank1 ^ h1.Board()},
-		{a8.Board(), ^a8.Board(), 0},
-		{h8.Board(), ^h8.Board(), Rank8 ^ h8.Board()},
-		{d4.Board(), 0, c4.Board()},
-		{d4.Board(), aroundD4, c4.Board() | b4.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, west); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, west): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestEastAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), Rank1 ^ a1.Board()},
-		{h1.Board(), ^h1.Board(), 0},
-		{a8.Board(), ^a8.Board(), Rank8 ^ a8.Board()},
-		{h8.Board(), ^h8.Board(), 0},
-		{d4.Board(), 0, e4.Board()},
-		{d4.Board(), aroundD4, e4.Board() | f4.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, east); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, east): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestNorthAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), AFile ^ a1.Board()},
-		{h1.Board(), ^h1.Board(), HFile ^ h1.Board()},
-		{a8.Board(), ^a8.Board(), 0},
-		{h8.Board(), ^h8.Board(), 0},
-		{d4.Board(), 0, d5.Board()},
-		{d4.Board(), aroundD4, d5.Board() | d6.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, north); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, north): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestSouthwestAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), 0},
-		{h1.Board(), ^h1.Board(), 0},
-		{a8.Board(), ^a8.Board(), 0},
-		{h8.Board(), ^h8.Board(), LongDiagonal ^ h8.Board()},
-		{d4.Board(), 0, c3.Board()},
-		{d4.Board(), aroundD4, c3.Board() | b2.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, southwest); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, southwest): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestSoutheastAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), 0},
-		{h1.Board(), ^h1.Board(), 0},
-		{a8.Board(), ^a8.Board(), LongAntiDiagonal ^ a8.Board()},
-		{h8.Board(), ^h8.Board(), 0},
-		{d4.Board(), 0, e3.Board()},
-		{d4.Board(), aroundD4, e3.Board() | f2.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, southeast); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, southeast): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestNorthwestAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), 0},
-		{h1.Board(), ^h1.Board(), LongAntiDiagonal ^ h1.Board()},
-		{a8.Board(), ^a8.Board(), 0},
-		{h8.Board(), ^h8.Board(), 0},
-		{d4.Board(), 0, c5.Board()},
-		{d4.Board(), aroundD4, c5.Board() | b6.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, northwest); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, northwest): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestNortheastAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), LongDiagonal ^ a1.Board()},
-		{h1.Board(), ^h1.Board(), 0},
-		{a8.Board(), ^a8.Board(), 0},
-		{h8.Board(), ^h8.Board(), 0},
-		{d4.Board(), 0, e5.Board()},
-		{d4.Board(), aroundD4, e5.Board() | f6.Board()},
-	} {
-		if got := attackFill(test.input, test.empty, northeast); got != test.want {
-			t.Errorf("attackFill(%016x, %016x, northeast): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestWhitePawnAdvances(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a2.Board(), ^a2.Board(), a3.Board() | a4.Board()},
-		{a2.Board(), ^(a2.Board() | a4.Board()), a3.Board()},
-		{a2.Board(), ^(a2.Board() | a3.Board()), 0},
-		{a5.Board(), ^a5.Board(), a6.Board()},
-		{a5.Board(), ^(a5.Board() | a6.Board()), 0},
-		{a7.Board(), ^a7.Board(), a8.Board()},
-		{a7.Board(), ^(a7.Board() | a8.Board()), 0},
-
-		{e2.Board(), ^e2.Board(), e3.Board() | e4.Board()},
-		{e2.Board(), ^(e2.Board() | e4.Board()), e3.Board()},
-		{e2.Board(), ^(e2.Board() | e3.Board()), 0},
-		{e5.Board(), ^e5.Board(), e6.Board()},
-		{e5.Board(), ^(e5.Board() | e6.Board()), 0},
-		{e7.Board(), ^e7.Board(), e8.Board()},
-		{e7.Board(), ^(e7.Board() | e8.Board()), 0},
-
-		{h2.Board(), ^h2.Board(), h3.Board() | h4.Board()},
-		{h2.Board(), ^(h2.Board() | h4.Board()), h3.Board()},
-		{h2.Board(), ^(h2.Board() | h3.Board()), 0},
-		{h5.Board(), ^h5.Board(), h6.Board()},
-		{h5.Board(), ^(h5.Board() | h6.Board()), 0},
-		{h7.Board(), ^h7.Board(), h8.Board()},
-		{h7.Board(), ^(h7.Board() | h8.Board()), 0},
-	} {
-		if got := whitePawnAdvances(test.input, test.empty); got != test.want {
-			t.Errorf("whitePawnAdvances(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestBlackPawnAdvances(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a7.Board(), ^a7.Board(), a6.Board() | a5.Board()},
-		{a7.Board(), ^(a7.Board() | a5.Board()), a6.Board()},
-		{a7.Board(), ^(a7.Board() | a6.Board()), 0},
-		{a4.Board(), ^a4.Board(), a3.Board()},
-		{a4.Board(), ^(a4.Board() | a3.Board()), 0},
-		{a2.Board(), ^a2.Board(), a1.Board()},
-		{a2.Board(), ^(a2.Board() | a1.Board()), 0},
-
-		{e7.Board(), ^e7.Board(), e6.Board() | e5.Board()},
-		{e7.Board(), ^(e7.Board() | e5.Board()), e6.Board()},
-		{e7.Board(), ^(e7.Board() | e6.Board()), 0},
-		{e4.Board(), ^e4.Board(), e3.Board()},
-		{e4.Board(), ^(e4.Board() | e3.Board()), 0},
-		{e2.Board(), ^e2.Board(), e1.Board()},
-		{e2.Board(), ^(e2.Board() | e1.Board()), 0},
-
-		{h7.Board(), ^h7.Board(), h6.Board() | h5.Board()},
-		{h7.Board(), ^(h7.Board() | h5.Board()), h6.Board()},
-		{h7.Board(), ^(h7.Board() | h6.Board()), 0},
-		{h4.Board(), ^h4.Board(), h3.Board()},
-		{h4.Board(), ^(h4.Board() | h3.Board()), 0},
-		{h2.Board(), ^h2.Board(), h1.Board()},
-		{h2.Board(), ^(h2.Board() | h1.Board()), 0},
-	} {
-		if got := blackPawnAdvances(test.input, test.empty); got != test.want {
-			t.Errorf("blackPawnAdvances(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
-
-func TestWhitePawnAttacks(t *testing.T) {
-	for _, test := range []struct{ input, want Board }{
-		{a2.Board(), b3.Board()},
-		{a5.Board(), b6.Board()},
-		{a7.Board(), b8.Board()},
-		{e2.Board(), d3.Board() | f3.Board()},
-		{e5.Board(), d6.Board() | f6.Board()},
-		{e7.Board(), d8.Board() | f8.Board()},
-		{h2.Board(), g3.Board()},
-		{h5.Board(), g6.Board()},
-		{h7.Board(), g8.Board()},
-	} {
-		if got := whitePawnAttacks(test.input, 0); got != test.want {
-			t.Errorf("whitePawnAttacks(%016x): got %016x, want %016x", test.input, got, test.want)
-		}
-	}
-}
-
-func TestBlackPawnAttacks(t *testing.T) {
-	for _, test := range []struct{ input, want Board }{
-		{a7.Board(), b6.Board()},
-		{a4.Board(), b3.Board()},
-		{a2.Board(), b1.Board()},
-		{e7.Board(), d6.Board() | f6.Board()},
-		{e4.Board(), d3.Board() | f3.Board()},
-		{e2.Board(), d1.Board() | f1.Board()},
-		{h7.Board(), g6.Board()},
-		{h4.Board(), g3.Board()},
-		{h2.Board(), g1.Board()},
-	} {
-		if got := blackPawnAttacks(test.input, 0); got != test.want {
-			t.Errorf("blackPawnAttacks(%016x): got %016x, want %016x", test.input, got, test.want)
-		}
-	}
-}
-
-func TestBishopAttacks(t *testing.T) {
+func TestPieceAttacks(t *testing.T) {
 	var ld, la = LongDiagonal, LongAntiDiagonal
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), LongDiagonal ^ a1.Board()},
-		{e7.Board(), ^e7.Board(), north(north(ld)) | north(north(north(la))) ^ e7.Board()},
-		{d4.Board(), 0, c3.Board() | e3.Board() | c5.Board() | e5.Board()},
-		{d4.Board(), aroundD4, b2.Board() | f2.Board() | c3.Board() | e3.Board() | c5.Board() | e5.Board() | b6.Board() | f6.Board()},
-	} {
-		if got := bishopAttacks(test.input, test.empty); got != test.want {
-			t.Errorf("bishopAttacks(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
+	for _, set := range []struct {
+		f     func(Board, Board) Board
+		name  string
+		tests []boardsTest
+	}{
+		{
+			whitePawnAdvances, "whitePawnAdvances", []boardsTest{
+				{a2.Board(), ^a2.Board(), a3.Board() | a4.Board()},
+				{a2.Board(), ^(a2.Board() | a4.Board()), a3.Board()},
+				{a2.Board(), ^(a2.Board() | a3.Board()), 0},
+				{a5.Board(), ^a5.Board(), a6.Board()},
+				{a5.Board(), ^(a5.Board() | a6.Board()), 0},
+				{a7.Board(), ^a7.Board(), a8.Board()},
+				{a7.Board(), ^(a7.Board() | a8.Board()), 0},
 
-func TestRookAttacks(t *testing.T) {
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), (AFile | Rank1) ^ a1.Board()},
-		{e7.Board(), ^e7.Board(), (EFile | Rank7) ^ e7.Board()},
-		{d4.Board(), 0, d3.Board() | c4.Board() | e4.Board() | d5.Board()},
-		{d4.Board(), aroundD4, d2.Board() | d3.Board() | b4.Board() | c4.Board() | e4.Board() | f4.Board() | d5.Board() | d6.Board()},
-	} {
-		if got := rookAttacks(test.input, test.empty); got != test.want {
-			t.Errorf("rookAttacks(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
-		}
-	}
-}
+				{e2.Board(), ^e2.Board(), e3.Board() | e4.Board()},
+				{e2.Board(), ^(e2.Board() | e4.Board()), e3.Board()},
+				{e2.Board(), ^(e2.Board() | e3.Board()), 0},
+				{e5.Board(), ^e5.Board(), e6.Board()},
+				{e5.Board(), ^(e5.Board() | e6.Board()), 0},
+				{e7.Board(), ^e7.Board(), e8.Board()},
+				{e7.Board(), ^(e7.Board() | e8.Board()), 0},
 
-func TestQueenAttacks(t *testing.T) {
-	var ld, la = LongDiagonal, LongAntiDiagonal
-	for _, test := range []struct{ input, empty, want Board }{
-		{a1.Board(), ^a1.Board(), (AFile | Rank1 | LongDiagonal) ^ a1.Board()},
-		{e7.Board(), ^e7.Board(), EFile | Rank7 | north(north(ld)) | north(north(north(la))) ^ e7.Board()},
-		{d4.Board(), 0, aroundD4},
-		{d4.Board(), aroundD4, aroundD4 | b2.Board() | d2.Board() | f2.Board() | b4.Board() | f4.Board() | b6.Board() | d6.Board() | f6.Board()},
+				{h2.Board(), ^h2.Board(), h3.Board() | h4.Board()},
+				{h2.Board(), ^(h2.Board() | h4.Board()), h3.Board()},
+				{h2.Board(), ^(h2.Board() | h3.Board()), 0},
+				{h5.Board(), ^h5.Board(), h6.Board()},
+				{h5.Board(), ^(h5.Board() | h6.Board()), 0},
+				{h7.Board(), ^h7.Board(), h8.Board()},
+				{h7.Board(), ^(h7.Board() | h8.Board()), 0},
+			},
+		},
+		{
+			blackPawnAdvances, "blackPawnAdvances", []boardsTest{
+				{a7.Board(), ^a7.Board(), a6.Board() | a5.Board()},
+				{a7.Board(), ^(a7.Board() | a5.Board()), a6.Board()},
+				{a7.Board(), ^(a7.Board() | a6.Board()), 0},
+				{a4.Board(), ^a4.Board(), a3.Board()},
+				{a4.Board(), ^(a4.Board() | a3.Board()), 0},
+				{a2.Board(), ^a2.Board(), a1.Board()},
+				{a2.Board(), ^(a2.Board() | a1.Board()), 0},
+
+				{e7.Board(), ^e7.Board(), e6.Board() | e5.Board()},
+				{e7.Board(), ^(e7.Board() | e5.Board()), e6.Board()},
+				{e7.Board(), ^(e7.Board() | e6.Board()), 0},
+				{e4.Board(), ^e4.Board(), e3.Board()},
+				{e4.Board(), ^(e4.Board() | e3.Board()), 0},
+				{e2.Board(), ^e2.Board(), e1.Board()},
+				{e2.Board(), ^(e2.Board() | e1.Board()), 0},
+
+				{h7.Board(), ^h7.Board(), h6.Board() | h5.Board()},
+				{h7.Board(), ^(h7.Board() | h5.Board()), h6.Board()},
+				{h7.Board(), ^(h7.Board() | h6.Board()), 0},
+				{h4.Board(), ^h4.Board(), h3.Board()},
+				{h4.Board(), ^(h4.Board() | h3.Board()), 0},
+				{h2.Board(), ^h2.Board(), h1.Board()},
+				{h2.Board(), ^(h2.Board() | h1.Board()), 0},
+			},
+		},
+		{
+			whitePawnAttacks, "whitePawnAttacks", []boardsTest{
+				{a2.Board(), 0, b3.Board()},
+				{a5.Board(), 0, b6.Board()},
+				{a7.Board(), 0, b8.Board()},
+				{e2.Board(), 0, d3.Board() | f3.Board()},
+				{e5.Board(), 0, d6.Board() | f6.Board()},
+				{e7.Board(), 0, d8.Board() | f8.Board()},
+				{h2.Board(), 0, g3.Board()},
+				{h5.Board(), 0, g6.Board()},
+				{h7.Board(), 0, g8.Board()},
+			},
+		},
+		{
+			blackPawnAttacks, "blackPawnAttacks", []boardsTest{
+				{a7.Board(), 0, b6.Board()},
+				{a4.Board(), 0, b3.Board()},
+				{a2.Board(), 0, b1.Board()},
+				{e7.Board(), 0, d6.Board() | f6.Board()},
+				{e4.Board(), 0, d3.Board() | f3.Board()},
+				{e2.Board(), 0, d1.Board() | f1.Board()},
+				{h7.Board(), 0, g6.Board()},
+				{h4.Board(), 0, g3.Board()},
+				{h2.Board(), 0, g1.Board()},
+			},
+		},
+		{
+			bishopAttacks, "bishopAttacks", []boardsTest{
+				{a1.Board(), ^a1.Board(), LongDiagonal ^ a1.Board()},
+				{e7.Board(), ^e7.Board(), north(north(ld)) | north(north(north(la))) ^ e7.Board()},
+				{d4.Board(), 0, c3.Board() | e3.Board() | c5.Board() | e5.Board()},
+				{d4.Board(), aroundD4, b2.Board() | f2.Board() | c3.Board() | e3.Board() | c5.Board() | e5.Board() | b6.Board() | f6.Board()},
+			},
+		},
+		{
+			rookAttacks, "rookAttacks", []boardsTest{
+				{a1.Board(), ^a1.Board(), (AFile | Rank1) ^ a1.Board()},
+				{e7.Board(), ^e7.Board(), (EFile | Rank7) ^ e7.Board()},
+				{d4.Board(), 0, d3.Board() | c4.Board() | e4.Board() | d5.Board()},
+				{d4.Board(), aroundD4, d2.Board() | d3.Board() | b4.Board() | c4.Board() | e4.Board() | f4.Board() | d5.Board() | d6.Board()},
+			},
+		},
+		{
+			queenAttacks, "queenAttacks", []boardsTest{
+				{a1.Board(), ^a1.Board(), (AFile | Rank1 | LongDiagonal) ^ a1.Board()},
+				{e7.Board(), ^e7.Board(), EFile | Rank7 | north(north(ld)) | north(north(north(la))) ^ e7.Board()},
+				{d4.Board(), 0, aroundD4},
+				{d4.Board(), aroundD4, aroundD4 | b2.Board() | d2.Board() | f2.Board() | b4.Board() | f4.Board() | b6.Board() | d6.Board() | f6.Board()},
+			},
+		},
 	} {
-		if got := queenAttacks(test.input, test.empty); got != test.want {
-			t.Errorf("queenAttacks(%016x, %016x): got %016x, want %016x", test.input, test.empty, got, test.want)
+		for _, test := range set.tests {
+			if got := set.f(test.input, test.empty); got != test.want {
+				t.Errorf("%v(%016x, %016x): got %016x, want %016x", set.name, test.input, test.empty, got, test.want)
+			}
 		}
 	}
 }
