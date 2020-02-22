@@ -341,67 +341,6 @@ func TestCanCastle(t *testing.T) {
 	}
 }
 
-var algebraicTests = []struct {
-	fen  string
-	move Move
-	alg  string
-	long string
-}{
-	{InitialPositionFEN, Move{From: e2, To: e4, Piece: Pawn}, "e4", "e2-e4"},
-	{InitialPositionFEN, Move{From: g2, To: g3, Piece: Pawn}, "g3", "g2-g3"},
-	{InitialPositionFEN, Move{From: g1, To: f3, Piece: Knight}, "Nf3", "Ng1-f3"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: f2, Piece: King}, "Kf2", "Ke1-f2"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: g2, To: g4, Piece: Pawn}, "g4", "g2-g4"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: d5, To: e6, Piece: Pawn, CapturePiece: Pawn, EP: true}, "dxe6", "d5xe6"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: a1, To: a8, Piece: Rook, CapturePiece: Rook}, "Rxa8+", "Ra1xa8"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: b8, Piece: Pawn, PromotePiece: Queen}, "b8Q+", "b7-b8Q"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}, "bxa8Q+", "b7xa8Q"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: c1, Piece: King}, "O-O-O", "O-O-O"},
-	{"r4k2/1P6/8/3Pp3/8/8/6P1/R3K2R w KQ e6 0 1", Move{From: e1, To: g1, Piece: King}, "O-O+", "O-O"},
-	{"r4k2/1P6/3P2Q1/4p3/8/8/6P1/R3K2R w KQ - 0 1", Move{From: e1, To: g1, Piece: King}, "O-O#", "O-O"},
-	{"7k/8/8/8/8/8/8/R4RK1 w - - 0 1", Move{From: a1, To: d1, Piece: Rook}, "Rad1", "Ra1-d1"},
-	{"7k/R7/8/8/8/8/8/R5K1 w - - 0 1", Move{From: a7, To: a6, Piece: Rook}, "R7a6", "Ra7-a6"},
-	{"7k/R7/8/8/8/8/8/R5K1 w - - 0 1", Move{From: a7, To: a8, Piece: Rook}, "Ra8+", "Ra7-a8"},
-	{"8/B7/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "B7d4", "Ba7-d4"},
-	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a1, To: d4, Piece: Bishop}, "B1d4", "Ba1-d4"},
-	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: g7, To: d4, Piece: Bishop}, "Bgd4", "Bg7-d4"},
-	{"8/B5B1/8/8/8/6k1/6P1/B5K1 w - - 0 1", Move{From: a7, To: d4, Piece: Bishop}, "Ba7d4", "Ba7-d4"},
-
-	// Cases with pinned pieces that should not be disambiguated
-	{"7k/8/8/8/8/8/R7/KR5r w - - 0 1", Move{From: a2, To: b2, Piece: Rook}, "Rb2", "Ra2-b2"},
-	{"r6k/8/8/8/8/8/R7/KR6 w - - 0 1", Move{From: b1, To: b2, Piece: Rook}, "Rb2", "Rb1-b2"},
-	{"7k/8/8/8/8/1R6/R7/KR5r w - - 0 1", Move{From: a2, To: b2, Piece: Rook}, "Rab2", "Ra2-b2"},
-	{"7k/8/8/8/8/1R6/R7/KR5r w - - 0 1", Move{From: b3, To: b2, Piece: Rook}, "Rbb2", "Rb3-b2"},
-	{"r6k/8/8/8/8/1R6/R7/KR6 w - - 0 1", Move{From: b1, To: b2, Piece: Rook}, "R1b2", "Rb1-b2"},
-	{"r6k/8/8/8/8/1R6/R7/KR6 w - - 0 1", Move{From: b3, To: b2, Piece: Rook}, "R3b2", "Rb3-b2"},
-	{"5b1k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r3b1 w - - 0 1", Move{From: c6, To: e4, Piece: Queen}, "Qe4", "Qc6-e4"},
-	{"2r2b1k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e3, To: e4, Piece: Queen}, "Qe4", "Qe3-e4"},
-	{"5b1k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e3, To: e4, Piece: Queen}, "Qee4", "Qe3-e4"},
-	{"7k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: c6, To: e4, Piece: Queen}, "Qce4", "Qc6-e4"},
-	{"7k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e3, To: e4, Piece: Queen}, "Q3e4", "Qe3-e4"},
-	{"7k/4Q3/2Q5/2K2Q1r/1Q6/b3Q3/2Q5/2r5 w - - 0 1", Move{From: e7, To: e4, Piece: Queen}, "Q7e4", "Qe7-e4"},
-}
-
-func TestLongAlgebraic(t *testing.T) {
-	for _, test := range algebraicTests {
-		if got := LongAlgebraic(test.move); got != test.long {
-			t.Errorf("LongAlgebraic(%v): got %v, want %v", test.move, got, test.long)
-		}
-	}
-}
-
-func TestAlgebraic(t *testing.T) {
-	for _, test := range algebraicTests {
-		pos, err := ParseFEN(test.fen)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := Algebraic(pos, test.move); got != test.alg {
-			t.Errorf("algebraic(%v, %+v): got %v, want %v", test.fen, test.move, got, test.alg)
-		}
-	}
-}
-
 func BenchmarkConstructMove(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = Move{From: b7, To: a8, Piece: Pawn, CapturePiece: Rook, PromotePiece: Queen}

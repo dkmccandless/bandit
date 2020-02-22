@@ -32,6 +32,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	startpos := pos
 
 	stdin := bufio.NewScanner(os.Stdin)
 	players := []Player{Computer{*moveTime, *depth}, Computer{*moveTime, *depth}}
@@ -42,8 +43,10 @@ func main() {
 		players[Black] = Human{stdin}
 	}
 
+	fmt.Println(pos)
 	startTime := time.Now()
-	var movesText string
+	var moves []Move
+	var resultText string
 	posZobrists := make(map[Zobrist]int)
 
 game:
@@ -53,53 +56,36 @@ game:
 		score, move := players[pos.ToMove].Play(pos)
 		if move == (Move{}) {
 			// player resigns
-			switch pos.ToMove {
-			case White:
-				movesText += "0-1"
-			case Black:
-				movesText += "1-0"
-			}
+			resultText = []string{"1-0", "0-1"}[pos.Opp()]
 			break
 		}
 
-		alg := Algebraic(pos, move)
-		movenum := fmt.Sprintf("%v.", pos.FullMove)
-		switch pos.ToMove {
-		case White:
-			movesText += movenum
-		case Black:
-			movenum += ".."
-		}
-		movesText += alg + " "
-
+		numalg := numberedAlgebraic(pos, move) // before Make
+		moves = append(moves, move)
 		pos = Make(pos, move)
 		if s, ok := score.err.(checkmateError); ok {
 			score = Abs{err: s.Next()}
 		}
 
-		fmt.Printf("%v%v %v %v\n", movenum, alg, score, time.Since(moveTime).Truncate(time.Millisecond))
+		fmt.Printf("%v %v %v\n", numalg, score, time.Since(moveTime).Truncate(time.Millisecond))
 		fmt.Println(pos)
 
 		// Check for end-of-game conditions
 		switch score.err {
 		case errCheckmate:
-			if pos.ToMove == White {
-				movesText += "0-1"
-			} else {
-				movesText += "1-0"
-			}
+			resultText = []string{"1-0", "0-1"}[pos.Opp()]
 			break game
 		case errStalemate, errInsufficient, errFiftyMove:
-			movesText += "1/2-1/2"
+			resultText = "1/2-1/2"
 			break game
 		}
 		if posZobrists[pos.z]++; posZobrists[pos.z] == 3 {
 			// threefold repetition
-			movesText += "1/2-1/2"
+			resultText = "1/2-1/2"
 			break
 		}
 	}
 
-	fmt.Println(movesText)
+	fmt.Printf("%v %v\n", Text(startpos, moves), resultText)
 	fmt.Println(time.Since(startTime).Truncate(time.Millisecond))
 }
